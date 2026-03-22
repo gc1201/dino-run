@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏃 Sprint Tracker</title>
+  <style>
+    :root {
+      --bg: #111;
+      --surface: #1a1a1a;
+      --surface2: #222;
+      --border: #333;
+      --accent: #fff;
+      --text: #e8e8e8;
+      --muted: #666;
+      --today: #FFD700;
+      --px-font: 'Courier New', Courier, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--px-font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      image-rendering: pixelated;
+    }
+
+    /* ── Header ── */
+    .hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 28px;
+      background: #000;
+      border-bottom: 3px solid #333;
+      position: sticky; top: 0; z-index: 60;
+      gap: 12px;
+    }
+    .hdr-left { display: flex; align-items: center; gap: 14px; }
+    .app-title {
+      font-size: 1rem; font-weight: 700; color: #fff;
+      font-family: var(--px-font);
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .proj-name {
+      font-size: 0.75rem; color: #888;
+      border-left: 2px solid #333; padding-left: 14px;
+      font-family: var(--px-font); letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .hi-score {
+      font-family: var(--px-font); font-size: 0.78rem;
+      color: #888; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .hi-score span { color: #fff; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 15px; border-radius: 0; border: 2px solid #555;
+      cursor: pointer; font-size: 0.78rem; font-weight: 700;
+      transition: all 0.12s; white-space: nowrap;
+      font-family: var(--px-font); text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .btn-primary { background: #fff; color: #000; border-color: #fff; }
+    .btn-primary:hover { background: #ccc; }
+    .btn-ghost { background: transparent; color: #888; border-color: #444; }
+    .btn-ghost:hover { background: #222; color: #fff; border-color: #888; }
+
+    /* ── Main ── */
+    .main { padding: 24px 32px 80px; transition: margin-right 0.32s cubic-bezier(.4,0,.2,1); }
+    .main.panel-open { margin-right: 430px; }
+
+    /* ── Track area ── */
+    .track-area { min-width: 640px; }
+
+    .track-row { display: flex; align-items: stretch; }
+    .track-label-col {
+      width: 140px; flex-shrink: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      padding-right: 16px; text-align: right;
+    }
+    .juris-name { font-size: 0.88rem; font-weight: 700; line-height: 1.2; }
+    .runner-badges { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+    .badge {
+      font-size: 0.68rem; font-weight: 600;
+      display: flex; align-items: center; gap: 4px; justify-content: flex-end;
+    }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .hopper-badge .badge-dot { border-radius: 2px; } /* square for hopper */
+
+    .track-body-col { flex: 1; min-width: 0; position: relative; }
+
+    /* ── Date ruler ── */
+    .date-ruler-row { margin-bottom: 2px; }
+    .date-ruler {
+      position: relative;
+      height: 28px;
+      border-bottom: 2px solid #333;
+    }
+    .month-tick {
+      position: absolute; top: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      align-items: flex-start;
+    }
+    .month-tick-line {
+      width: 2px; height: 8px;
+      background: #444;
+    }
+    .month-tick-label {
+      font-size: 0.58rem; color: #666; font-weight: 700;
+      letter-spacing: 0.06em; white-space: nowrap;
+      padding-top: 2px; font-family: var(--px-font);
+      text-transform: uppercase;
+    }
+
+    /* ── Track lane ── */
+    .lane-wrapper { margin-bottom: 12px; position: relative; }
+
+    .lane-body {
+      position: relative;
+      height: 200px;
+    }
+
+    /* Phase strip — pixel style */
+    .phase-strip {
+      position: absolute; left: 0; right: 0;
+      height: 20px;
+      border-radius: 0;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+    .phase-strip.strip-a { top: 2px; }
+    .phase-strip.strip-b { top: 104px; }
+
+    /* A/B roll label */
+    .roll-label {
+      position: absolute; left: -18px;
+      font-size: 0.55rem; font-family: var(--px-font);
+      font-weight: 700; color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .roll-label.label-a { top: 8px; }
+    .roll-label.label-b { top: 110px; }
+
+    /* Lane divider */
+    .lane-divider {
+      position: absolute; left: 0; right: 0;
+      top: 99px; height: 1px;
+      background: #2a2a2a;
+    }
+
+    /* Roll toggle button in edit panel */
+    .roll-btn {
+      width: 22px; height: 22px; padding: 0; flex-shrink: 0;
+      font-size: 0.65rem; font-weight: 700; font-family: var(--px-font);
+      cursor: pointer; border: 2px solid #555; border-radius: 0;
+    }
+    .roll-btn.is-a { background: #1a1a1a; color: #666; }
+    .roll-btn.is-b { background: #444; color: #fff; border-color: #aaa; }
+    .ph-seg {
+      position: absolute; top: 0; bottom: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.56rem; font-weight: 700;
+      color: rgba(255,255,255,0.95);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      overflow: hidden; white-space: nowrap;
+      border-right: 2px solid rgba(0,0,0,0.5);
+      border-radius: 0;
+      cursor: default;
+      font-family: var(--px-font);
+      transition: filter 0.2s;
+    }
+    .ph-seg:hover { filter: brightness(1.2); }
+    .ph-seg.not-started { opacity: 0.28; }
+    .ph-seg.in-progress {
+      animation: ph-pulse 1.4s steps(2, start) infinite;
+    }
+    @keyframes ph-pulse {
+      0%,100% { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5); }
+      50%      { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.0); }
+    }
+
+    /* Flag markers — hidden, cacti drawn by canvas instead */
+    .flag-row { display: none; }
+
+    /* Track bars — invisible, only for getBoundingClientRect positioning */
+    .track-bar-a { position: absolute; top: 88px; left: 0; right: 0; height: 4px; background: transparent; }
+    .track-bar-b { position: absolute; top: 183px; left: 0; right: 0; height: 4px; background: transparent; }
+
+    /* TODAY line — gold vertical dashes */
+    .today-line {
+      position: absolute; top: 22px; bottom: 10px; width: 3px;
+      background: repeating-linear-gradient(
+        to bottom, var(--today) 0px, var(--today) 6px, transparent 6px, transparent 10px
+      );
+      z-index: 4;
+      pointer-events: none;
+    }
+    .today-line::before {
+      content: 'NOW';
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      font-size: 0.55rem; font-weight: 900; color: var(--today);
+      letter-spacing: 0.1em; white-space: nowrap;
+      font-family: var(--px-font);
+    }
+
+    /* Legend */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 14px;
+      padding-top: 18px; margin-top: 20px;
+      border-top: 1px solid var(--border);
+      align-items: center;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .legend-sym { font-size: 0.8rem; }
+    .legend-div { width: 1px; height: 16px; background: var(--border); }
+
+    /* ── Edit Panel ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 110; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .overlay.on { opacity: 1; pointer-events: all; }
+
+    .ep {
+      position: fixed; right: -440px; top: 0; width: 420px; height: 100dvh;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      transition: right 0.32s cubic-bezier(.4,0,.2,1);
+      z-index: 120;
+      display: flex; flex-direction: column;
+      box-shadow: -6px 0 32px rgba(0,0,0,0.5);
+    }
+    .ep.on { right: 0; }
+    .ep-hdr {
+      padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .ep-title { font-size: 1rem; font-weight: 700; }
+    .xbtn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 5px 7px; border-radius: 6px; transition: all .15s; }
+    .xbtn:hover { background: var(--surface2); color: var(--text); }
+
+    .ep-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .ep-tab { flex: 1; padding: 10px 6px; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; transition: all .18s; }
+    .ep-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .ep-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* EP items */
+    .ep-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 13px; margin-bottom: 10px;
+    }
+    .ep-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .ep-row:last-child { margin-bottom: 0; }
+    .ep-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .ep-lbl { font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 3px; }
+    .ep-in {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); padding: 6px 9px;
+      font-size: 0.8rem; outline: none; transition: border-color .15s;
+      width: 100%; box-sizing: border-box;
+    }
+    .ep-in:focus { border-color: #7c6af7; }
+    .ep-in.date-in {
+      font-family: var(--px-font); letter-spacing: 0.04em;
+    }
+    .ep-in.date-in::placeholder { color: #444; }
+    .ep-in.date-err { border-color: #ef4444 !important; }
+    .ep-in.w-auto { width: auto; }
+    .ep-sel { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 22px; cursor: pointer; }
+    .clr-pick { width: 28px; height: 28px; border: none; border-radius: 50%; padding: 2px; cursor: pointer; background: none; flex-shrink: 0; }
+
+    .ep-phases-hdr {
+      font-size: 0.68rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin: 10px 0 6px;
+    }
+    .ep-phase-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 7px; padding: 9px; margin-bottom: 6px;
+    }
+    .ep-phase-row1 { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; }
+    .ep-phase-row2 { display: grid; grid-template-columns: 1fr 68px 96px 1fr; gap: 6px; }
+    .ep-end-display { font-size:0.78rem; color:var(--muted); padding:6px 2px; font-family:var(--px-font); white-space:nowrap; }
+
+    .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 0.75rem; flex-shrink: 0; transition: all .15s; }
+    .del-btn:hover { background: rgba(233,69,96,.18); color: var(--accent); }
+    .add-btn { width: 100%; padding: 8px; border: 1px dashed var(--border); background: transparent; color: var(--muted); border-radius: 7px; cursor: pointer; font-size: 0.8rem; transition: all .18s; margin-top: 4px; }
+    .add-btn:hover { background: var(--surface2); color: var(--text); border-color: #7c6af7; }
+    .track-expand-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; padding: 3px 6px; border-radius: 4px; transition: all .15s; margin-left: auto; flex-shrink: 0; }
+    .track-expand-btn:hover { color: var(--text); }
+
+    .section-lbl { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 8px; }
+    .section-lbl:first-child { margin-top: 0; }
+
+    /* Status badge */
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+    .s-done { background: #10B981; }
+    .s-inprog { background: #F59E0B; animation: blink .9s ease-in-out infinite; }
+    .s-notstart { background: var(--muted); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    /* Preset btns */
+    .preset-btn { width:100%; padding:8px 12px; margin-bottom:7px; text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--text); cursor:pointer; font-size:0.8rem; transition:all .18s; }
+    .preset-btn:hover { border-color: #7c6af7; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="app-title">&#9711; SPRINT TRACKER</span>
+    <span class="proj-name" id="proj-disp">Multi-Jurisdiction Project</span>
+  </div>
+  <div class="hi-score">HI SCORE <span id="hi-score-val">00000</span></div>
+  <button class="btn btn-primary" onclick="openPanel()">[ EDIT ]</button>
+</header>
+
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="main" id="main">
+  <div class="track-area" id="track-area"></div>
+</div>
+
+<!-- Canvas over everything (pointer-events:none) -->
+<canvas id="cv" style="position:fixed;top:0;left:0;pointer-events:none;z-index:10;"></canvas>
+
+<!-- Edit Panel -->
+<div class="ep" id="ep">
+  <div class="ep-hdr">
+    <div class="ep-title">⚙ Edit Project</div>
+    <button class="xbtn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="ep-tabs">
+    <div class="ep-tab active" id="tab-tracks"   onclick="setTab('tracks')">🗺 Tracks</div>
+    <div class="ep-tab"        id="tab-members"  onclick="setTab('members')">👥 Members</div>
+    <div class="ep-tab"        id="tab-settings" onclick="setTab('settings')">⚙ Settings</div>
+  </div>
+  <div class="ep-body" id="ep-body"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════
+const STORAGE_KEY = "arnold-sprint-v1";
+
+function saveState() {
+  try {
+    const payload = {
+      projectName: S.projectName,
+      members: S.members,
+      tracks: S.tracks.map(({ _dpr, _dph, ...rest }) => rest), // strip animation state
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch(e) {}
+}
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved?.tracks || !saved?.members) return false;
+    S.projectName = saved.projectName ?? S.projectName;
+    S.members     = saved.members;
+    S.tracks      = saved.tracks;
+    // Keep uid counter above any existing ids so new items don't collide
+    const allIds = [
+      ...S.members.map(m => m.id),
+      ...S.tracks.flatMap(t => [t.id, ...t.phases.map(p => p.id)]),
+    ];
+    _uid = Math.max(100, ...allIds) + 1;
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearSavedState() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let _uid = 100;
+const uid = () => _uid++;
+
+let S = {
+  projectName: "Arnold Sprint",
+  tab: "tracks",
+  expandedTrack: null,
+
+  members: [
+    { id: 1, name: "Ivy",    color: "#EC4899", role: "runner" },
+    { id: 2, name: "Megan",  color: "#818CF8", role: "runner" },
+    { id: 3, name: "Darrell",color: "#2DD4BF", role: "runner" },
+    { id: 4, name: "Arian",  color: "#FB923C", role: "runner" },
+    { id: 5, name: "Haley",  color: "#F87171", role: "hopper" },
+    { id: 6, name: "Sarah",  color: "#A3E635", role: "hopper" },
+  ],
+
+  tracks: [
+    // A-roll: Parcel(5d) → Assumptions(4d) → Policy(5d) → Integration(4d) → Rollout(4d)
+    // B-roll: Land Value(2d) ∥ Fees(5d)  — parallel strips
+    {
+      id: 1, jurisdiction: "Durham",
+      mainRunnerId: 1,
+      hopper: { memberId: 5, phaseId: 12 }, // Haley on Land Value (B)
+      phases: [
+        { id: 11, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 12, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
+        { id: 13, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
+        { id: 14, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
+        { id: 15, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
+        { id: 16, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
+        { id: 17, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+      ]
+    },
+    {
+      id: 2, jurisdiction: "Raleigh",
+      mainRunnerId: 2,
+      hopper: { memberId: 6, phaseId: 22 }, // Sarah on Land Value (B)
+      phases: [
+        { id: 21, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 22, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
+        { id: 23, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
+        { id: 24, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
+        { id: 25, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
+        { id: 26, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
+        { id: 27, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+      ]
+    },
+    {
+      id: 3, jurisdiction: "Flagstaff",
+      mainRunnerId: 3,
+      hopper: { memberId: 5, phaseId: 35 }, // Haley on Fees (B)
+      phases: [
+        { id: 31, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 32, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
+        { id: 33, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
+        { id: 34, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
+        { id: 35, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
+        { id: 36, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
+        { id: 37, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+      ]
+    },
+    {
+      id: 5, jurisdiction: "Charlottesville",
+      mainRunnerId: 1,
+      hopper: null,
+      phases: [
+        { id: 51, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "in_progress", roll: "A" },
+        { id: 52, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
+        { id: 53, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
+        { id: 54, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
+        { id: 55, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
+        { id: 56, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
+        { id: 57, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+      ]
+    },
+    {
+      id: 4, jurisdiction: "AZ city tbd",
+      mainRunnerId: null,
+      hopper: { memberId: 6, phaseId: 45 }, // Sarah on Fees (B)
+      phases: [
+        { id: 41, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 42, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
+        { id: 43, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
+        { id: 44, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
+        { id: 45, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
+        { id: 46, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
+        { id: 47, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+      ]
+    },
+  ],
+};
+
+// ═══════════════════════════════════════════
+// DATE UTILITIES
+// ═══════════════════════════════════════════
+function pd(s) { return new Date(s + "T12:00:00"); } // parse date string
+
+let _range = null;
+function globalRange() {
+  if (_range) return _range;
+  let mn = Infinity, mx = -Infinity;
+  S.tracks.forEach(tr => tr.phases.forEach(ph => {
+    const s = pd(ph.start).getTime(), e = pd(phaseEnd(ph)).getTime();
+    if (s < mn) mn = s;
+    if (e > mx) mx = e;
+  }));
+  _range = { min: mn, max: mx };
+  return _range;
+}
+function invalidateRange() { _range = null; }
+
+function d2pct(dateStr) {
+  const { min, max } = globalRange();
+  if (max === min) return 0;
+  return Math.max(0, Math.min(100, (pd(dateStr).getTime() - min) / (max - min) * 100));
+}
+
+function todayPct() {
+  const { min, max } = globalRange();
+  if (max === min) return 50;
+  return Math.max(0, Math.min(100, (Date.now() - min) / (max - min) * 100));
+}
+
+function phasePct(phases) {
+  // Shared sequential-progress logic for a list of phases
+  const { min, max } = globalRange();
+  if (max === min) return 0;
+  const today = Date.now();
+  let pos = min;
+  for (const ph of phases) {
+    const s = pd(ph.start).getTime(), e = pd(phaseEnd(ph)).getTime();
+    if (ph.status === "done")        { pos = e; }
+    else if (ph.status === "in_progress") { pos = Math.max(s, Math.min(today, e)); break; }
+    else                             { break; }
+  }
+  return Math.max(0, Math.min(100, (pos - min) / (max - min) * 100));
+}
+
+function computeRunnerPct(track) {
+  // Runner works A-roll phases only
+  return phasePct(track.phases.filter(p => p.roll !== "B"));
+}
+
+function computeHopperPct(track) {
+  // Hopper works B-roll phases sequentially (parallel to A-roll)
+  if (!track.hopper) return null;
+  const bPhases = track.phases.filter(p => p.roll === "B");
+  if (bPhases.length === 0) return null;
+  return phasePct(bPhases);
+}
+
+function monthMarkers() {
+  const { min, max } = globalRange();
+  const total = max - min;
+  const markers = [];
+  let d = new Date(min);
+  d = new Date(d.getFullYear(), d.getMonth(), 1);
+  // Decide step size: monthly, bimonthly, or quarterly
+  const months = Math.round(total / (30 * 24 * 3600 * 1000));
+  const step = months > 30 ? 3 : months > 18 ? 2 : 1;
+  while (d.getTime() <= max) {
+    markers.push(new Date(d));
+    d = new Date(d.getFullYear(), d.getMonth() + step, 1);
+  }
+  return markers;
+}
+
+function fmtDate(str) {
+  return pd(str).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+}
+
+// ═══════════════════════════════════════════
+// TRACK RENDERING
+// ═══════════════════════════════════════════
+function updateHiScore() {
+  const el = document.getElementById("hi-score-val");
+  if (!el) return;
+  const avg = S.tracks.reduce((sum, t) => sum + computeRunnerPct(t), 0) / S.tracks.length;
+  const score = Math.round(avg * 100); // 0–10000
+  el.textContent = String(score).padStart(5, "0");
+}
+
+function renderTrack() {
+  invalidateRange();
+  updateHiScore();
+  const area = document.getElementById("track-area");
+  area.innerHTML = "";
+
+  const { min, max } = globalRange();
+  const total = max - min;
+
+  // ── Date ruler ──
+  const rulerRow = mkRow("date-ruler-row");
+  const rulerLabel = mkEl("div", "track-label-col");
+  rulerLabel.innerHTML = `<span style="font-size:0.62rem;color:var(--muted);font-weight:700;letter-spacing:.06em;text-align:right;display:block;">DATE</span>`;
+  rulerRow.appendChild(rulerLabel);
+
+  const rulerBodyCol = mkEl("div", "track-body-col");
+  const rulerEl = mkEl("div", "date-ruler");
+
+  monthMarkers().forEach(d => {
+    const pct = (d.getTime() - min) / total * 100;
+    if (pct < 0 || pct > 100) return;
+    const tick = mkEl("div", "month-tick");
+    tick.style.left = pct + "%";
+    const isJan = d.getMonth() === 0;
+    const lbl = d.toLocaleDateString("en-US", { month: "short" });
+    tick.innerHTML = `<div class="month-tick-line"></div>
+      <div class="month-tick-label">${isJan ? lbl + " '" + String(d.getFullYear()).slice(2) : lbl}</div>`;
+    rulerEl.appendChild(tick);
+  });
+
+  rulerBodyCol.appendChild(rulerEl);
+  rulerRow.appendChild(rulerBodyCol);
+  area.appendChild(rulerRow);
+
+  // ── Track lanes ──
+  function buildStrip(phases, rollClass) {
+    const strip = mkEl("div", `phase-strip ${rollClass}`);
+    phases.forEach(ph => {
+      const endStr = phaseEnd(ph);
+      const left = d2pct(ph.start), w = d2pct(endStr) - left;
+      if (w <= 0) return;
+      const seg = mkEl("div", "ph-seg " + (ph.status === "done" ? "done" : ph.status === "in_progress" ? "in-progress" : "not-started"));
+      seg.style.left = left + "%"; seg.style.width = w + "%"; seg.style.background = ph.color;
+      seg.textContent = w >= 9 ? ph.name : w >= 4 ? ph.name[0] : "";
+      seg.title = `${ph.name} | ${fmtDate(ph.start)} → ${fmtDate(endStr)} | ${ph.status.replace("_"," ")} | ${ph.duration ?? "?"}d`;
+      strip.appendChild(seg);
+    });
+    return strip;
+  }
+
+  S.tracks.forEach(track => {
+    const runner = S.members.find(m => m.id === track.mainRunnerId);
+    const laneRow = mkRow("lane-row");
+
+    // Label col
+    const labelCol = mkEl("div", "track-label-col");
+    const jname = mkEl("div", "juris-name");
+    jname.style.color = runner ? runner.color : "var(--text)";
+    jname.textContent = track.jurisdiction;
+    labelCol.appendChild(jname);
+    laneRow.appendChild(labelCol);
+
+    // Track body col
+    const bodyCol = mkEl("div", "track-body-col");
+    const laneBody = mkEl("div", "lane-body");
+    laneBody.id = `tbar-${track.id}`;
+
+    const aPhases = track.phases.filter(p => p.roll !== "B");
+    const bPhases = track.phases.filter(p => p.roll === "B");
+
+    // A-roll label + strip
+    const lblA = mkEl("div", "roll-label label-a"); lblA.textContent = "A";
+    laneBody.appendChild(lblA);
+    laneBody.appendChild(buildStrip(aPhases, "strip-a"));
+
+    // Lane divider
+    laneBody.appendChild(mkEl("div", "lane-divider"));
+
+    // B-roll label + strip
+    const lblB = mkEl("div", "roll-label label-b"); lblB.textContent = "B";
+    laneBody.appendChild(lblB);
+    laneBody.appendChild(buildStrip(bPhases, "strip-b"));
+
+    // Invisible trackbars for canvas positioning
+    const tbarA = mkEl("div", "track-bar-a"); tbarA.id = `trackbar-a-${track.id}`;
+    const tbarB = mkEl("div", "track-bar-b"); tbarB.id = `trackbar-b-${track.id}`;
+    laneBody.appendChild(tbarA);
+    laneBody.appendChild(tbarB);
+
+    // TODAY line
+    const tpct = todayPct();
+    if (tpct >= 0 && tpct <= 100) {
+      const tl = mkEl("div", "today-line"); tl.style.left = tpct + "%";
+      laneBody.appendChild(tl);
+    }
+
+    bodyCol.appendChild(laneBody);
+    laneRow.appendChild(bodyCol);
+    area.appendChild(laneRow);
+  });
+
+  // ── Phase legend (distinct phase names + colors) ──
+  const seen = new Set();
+  const legendItems = [];
+  S.tracks.forEach(tr => tr.phases.forEach(ph => {
+    if (!seen.has(ph.name)) {
+      seen.add(ph.name);
+      legendItems.push({ name: ph.name, color: ph.color });
+    }
+  }));
+
+  const legRow = mkRow("legend-row");
+  const legLabel = mkEl("div", "track-label-col");
+  legRow.appendChild(legLabel);
+  const legBody = mkEl("div", "track-body-col");
+  const leg = mkEl("div", "legend");
+  // Status legend
+  [["✓ Done","#10B981"], ["▶ In Progress","#F59E0B"], ["○ Not Started","#64748b"]].forEach(([lbl,col]) => {
+    const li = mkEl("div", "legend-item");
+    li.innerHTML = `<span class="legend-sym" style="color:${col}">${lbl.split(" ")[0]}</span><span>${lbl.slice(2)}</span>`;
+    leg.appendChild(li);
+  });
+  const div1 = mkEl("div","legend-div"); leg.appendChild(div1);
+  // Runner / hopper
+  leg.innerHTML += `<div class="legend-item"><span class="legend-sym" style="font-family:var(--px-font);font-size:10px;letter-spacing:0">T-REX</span><span>Main Runner</span></div>`;
+  leg.innerHTML += `<div class="legend-item"><span class="legend-sym" style="font-family:var(--px-font);font-size:10px;letter-spacing:0">PTERO</span><span>Hopper</span></div>`;
+  legBody.appendChild(leg);
+  legRow.appendChild(legBody);
+  area.appendChild(legRow);
+}
+
+// ═══════════════════════════════════════════
+// CANVAS — PIXEL ART DINO SPRITES
+// ═══════════════════════════════════════════
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+function resizeCv() { cv.width = window.innerWidth; cv.height = window.innerHeight; }
+window.addEventListener("resize", () => { resizeCv(); renderTrack(); });
+resizeCv();
+
+// ── Race state machine ──
+let gameState = "waiting"; // "waiting" | "racing"
+let raceStartTs = 0;
+
+function startRace() {
+  if (gameState !== "waiting") return;
+  gameState = "racing";
+  raceStartTs = performance.now();
+}
+
+// SPACE bar starts the race
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && gameState === "waiting") {
+    e.preventDefault();
+    startRace();
+  }
+});
+// Click / tap anywhere also starts (but not on the edit panel)
+document.addEventListener("click", e => {
+  if (gameState === "waiting" && !e.target.closest("#ep, .ep, button")) startRace();
+});
+
+const PX = 3; // canvas pixels per art pixel
+
+// ── Sprite definitions ('#' = filled pixel, '.' = transparent) ──
+
+// T-Rex dino, 2 running frames (12 wide × 12 tall)
+const DINO = [
+  [ // frame 0 — left leg forward
+    "......#####.",
+    ".....#######",
+    ".....#.#####",
+    ".....#######",
+    ".........###",
+    "...#########",
+    "..##########",
+    ".###########",
+    "..#########.",
+    "...##.......",
+    "...##..##...",
+    "....#...##..",
+  ],
+  [ // frame 1 — right leg forward
+    "......#####.",
+    ".....#######",
+    ".....#.#####",
+    ".....#######",
+    ".........###",
+    "...#########",
+    "..##########",
+    ".###########",
+    "..#########.",
+    "...##.......",
+    "..##....##..",
+    "..#......#..",
+  ],
+];
+
+// Pterodactyl hopper, 2 flap frames (14 wide × 6 tall)
+const PTERO = [
+  [ // frame 0 — wings level
+    "...##....##...",
+    "..####..####..",
+    ".######.#####.",
+    "##...######..#",
+    ".....######...",
+    "......####....",
+  ],
+  [ // frame 1 — wings up
+    "......####....",
+    ".....######...",
+    "##...######..#",
+    ".######.#####.",
+    "..####..####..",
+    "...##....##...",
+  ],
+];
+
+// Cactus milestone marker (8 wide × 10 tall)
+const CACTUS = [
+  "...##...",
+  "...##...",
+  ".#.##.#.",
+  ".######.",
+  ".######.",
+  "...##...",
+  "...##...",
+  "...####.",
+  "....###.",
+  "....##..",
+];
+
+// Cloud (10 wide × 4 tall)
+const CLOUD = [
+  "...####...",
+  ".########.",
+  "##########",
+  ".########.",
+];
+
+// Static star positions (fraction of screen)
+const STARS = Array.from({ length: 50 }, () => ({
+  x: Math.random(),
+  y: Math.random() * 0.45,
+  sz: Math.random() > 0.75 ? 2 : 1,
+  phase: Math.floor(Math.random() * 8),
+}));
+
+// Scrolling background clouds
+const BG_CLOUDS = Array.from({ length: 7 }, (_, i) => ({
+  x: (i / 7) * window.innerWidth + Math.random() * 300,
+  y: 20 + Math.random() * 80,
+  speed: 0.25 + Math.random() * 0.25,
+}));
+
+// ── Drawing helpers ──
+
+function drawSprite(rows, ox, oy, color) {
+  ctx.fillStyle = color;
+  rows.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) {
+      if (row[c] === "#") ctx.fillRect(ox + c * PX, oy + r * PX, PX, PX);
+    }
+  });
+}
+
+// groundY = y of feet; sprite drawn upward from there
+function drawDino(x, groundY, color, frame) {
+  const sp = DINO[frame & 1];
+  const w = sp[0].length * PX;
+  const h = sp.length * PX;
+  drawSprite(sp, x - w / 2, groundY - h, color);
+}
+
+function drawPtero(x, groundY, color, frame) {
+  const sp = PTERO[frame & 1];
+  const w = sp[0].length * PX;
+  const h = sp.length * PX;
+  // flies above the dino (~45px above ground)
+  drawSprite(sp, x - w / 2, groundY - h - 46, color);
+}
+
+function drawCactus(x, groundY, color) {
+  const w = CACTUS[0].length * PX;
+  const h = CACTUS.length * PX;
+  drawSprite(CACTUS, x - w / 2, groundY - h, color);
+}
+
+function drawGround(left, groundY, width) {
+  // Solid ground line
+  ctx.fillStyle = "#555";
+  ctx.fillRect(left, groundY, width, 2);
+  // Dashed lower line
+  ctx.fillStyle = "#444";
+  for (let x = left; x < left + width; x += 14) {
+    ctx.fillRect(x, groundY + 5, 8, 1);
+  }
+}
+
+function drawFinishFlag(x, groundY, color) {
+  const poleH = CACTUS.length * PX + 16;
+  const poleTop = groundY - poleH;
+  // Pole
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 1, poleTop, 2, poleH);
+  // Checkered 4×3 flag squares
+  const cs = 4;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 4; col++) {
+      ctx.fillStyle = (row + col) % 2 === 0 ? color : "#222";
+      ctx.fillRect(x + 1 + col * cs, poleTop + row * cs, cs, cs);
+    }
+  }
+}
+
+function drawLabel(x, y, text, color) {
+  ctx.save();
+  ctx.font = `bold 9px 'Courier New', monospace`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+// ── Animation loop ──
+
+let _lastTs = 0;
+let _animFrame = 0;
+
+function animLoop(ts) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  // Advance fast frame (running) every ~150ms; slow frame (idle) every ~600ms
+  if (ts - _lastTs > 150) { _lastTs = ts; _animFrame++; }
+  const idleFrame = Math.floor(_animFrame / 4); // 4× slower leg-bob at start line
+
+  // ── Background: scrolling clouds ──
+  ctx.globalAlpha = 0.18;
+  BG_CLOUDS.forEach(c => {
+    c.x -= c.speed;
+    if (c.x < -CLOUD[0].length * PX) c.x = cv.width + 60;
+    drawSprite(CLOUD, c.x, c.y, "#aaa");
+  });
+  ctx.globalAlpha = 1.0;
+
+  // ── Background: twinkling stars ──
+  STARS.forEach(s => {
+    const bright = (_animFrame + s.phase) % 10 < 7;
+    ctx.fillStyle = bright ? "#666" : "#333";
+    ctx.fillRect(s.x * cv.width, s.y * cv.height, s.sz, s.sz);
+  });
+
+  // ── Per-track drawing ──
+  S.tracks.forEach(track => {
+    const raEl = document.getElementById(`trackbar-a-${track.id}`);
+    const rbEl = document.getElementById(`trackbar-b-${track.id}`);
+    if (!raEl || !rbEl) return;
+    const ra = raEl.getBoundingClientRect();
+    const rb = rbEl.getBoundingClientRect();
+    if (ra.width === 0) return;
+
+    const gyA = ra.bottom;  // A-roll ground Y (dino runs here)
+    const gyB = rb.bottom;  // B-roll ground Y (ptero runs here)
+    const laneLeft = ra.left;
+    const laneWidth = ra.width;
+
+    // Ground lines for both rolls
+    drawGround(laneLeft, gyA, laneWidth);
+    drawGround(laneLeft, gyB, laneWidth);
+
+    // Start gate lines
+    const gateH = DINO[0].length * PX + 14;
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.fillRect(laneLeft, gyA - gateH, 2, gateH);
+    ctx.fillRect(laneLeft, gyB - PTERO[0].length * PX - 26, 2, PTERO[0].length * PX + 26);
+
+    // Cacti / finish flags for A-roll phases
+    const aPhases = track.phases.filter(p => p.roll !== "B");
+    aPhases.forEach((ph, pi) => {
+      const cx = laneLeft + (d2pct(phaseEnd(ph)) / 100) * laneWidth;
+      if (pi < aPhases.length - 1) {
+        ctx.globalAlpha = 0.4; drawCactus(cx, gyA, "#888"); ctx.globalAlpha = 1;
+      } else {
+        drawFinishFlag(cx, gyA, "#fff");
+      }
+    });
+
+    // Cacti / finish flags for B-roll phases
+    const bPhases = track.phases.filter(p => p.roll === "B");
+    bPhases.forEach((ph, pi) => {
+      const cx = laneLeft + (d2pct(phaseEnd(ph)) / 100) * laneWidth;
+      if (pi < bPhases.length - 1) {
+        ctx.globalAlpha = 0.4; drawCactus(cx, gyB, "#888"); ctx.globalAlpha = 1;
+      } else {
+        drawFinishFlag(cx, gyB, "#aaa");
+      }
+    });
+
+    const runner = S.members.find(m => m.id === track.mainRunnerId);
+    const runnerColor = runner ? runner.color : "#555";
+    const runnerLabel = runner ? runner.name : "?";
+    const hopperM = track.hopper ? S.members.find(m => m.id === track.hopper.memberId) : null;
+    const targetH = computeHopperPct(track);
+
+    if (gameState === "waiting") {
+      // ── WAITING: everyone at start gate ──
+      const sx = laneLeft + 20;
+      drawDino(sx, gyA, runnerColor, idleFrame);
+      drawLabel(sx, gyA - DINO[0].length * PX - 5, runnerLabel, runnerColor);
+      if (hopperM && targetH !== null) {
+        drawPtero(sx, gyB, hopperM.color, idleFrame + 1);
+        drawLabel(sx, gyB - PTERO[0].length * PX - 26, hopperM.name, hopperM.color);
+      }
+    } else {
+      // ── RACING: lerp toward real targets ──
+      const targetR = computeRunnerPct(track);
+      track._dpr += (targetR - track._dpr) * 0.04;
+      if (targetH !== null) track._dph += (targetH - track._dph) * 0.04;
+
+      const rx = laneLeft + (track._dpr / 100) * laneWidth;
+      drawDino(rx, gyA, runnerColor, _animFrame);
+      drawLabel(rx, gyA - DINO[0].length * PX - 5,
+        `${runnerLabel} ${Math.round(track._dpr)}%`, runnerColor);
+
+      if (hopperM && targetH !== null) {
+        const hx = laneLeft + (track._dph / 100) * laneWidth;
+        drawPtero(hx, gyB, hopperM.color, _animFrame + 1);
+        drawLabel(hx, gyB - PTERO[0].length * PX - 26,
+          `${hopperM.name} ${Math.round(track._dph)}%`, hopperM.color);
+      }
+    }
+  });
+
+  // ── Waiting overlay: "PRESS SPACE TO RACE" ──
+  if (gameState === "waiting") {
+    const cx = cv.width / 2;
+    const cy = cv.height / 2 + 20;
+    if (_animFrame % 18 < 12) { // blink
+      ctx.save();
+      ctx.font = "bold 14px 'Courier New', monospace";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("PRESS  SPACE  TO  START  RACE", cx, cy);
+      ctx.font = "10px 'Courier New', monospace";
+      ctx.fillStyle = "#666";
+      ctx.fillText("or click anywhere", cx, cy + 20);
+      ctx.restore();
+    }
+  }
+
+  // ── "GO!" flash on race start ──
+  if (gameState === "racing") {
+    const elapsed = performance.now() - raceStartTs;
+    if (elapsed < 1000) {
+      const alpha = 1 - elapsed / 1000;
+      const scale = 1 + (1 - alpha) * 0.6; // shrink as it fades
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `bold ${Math.round(52 * scale)}px 'Courier New', monospace`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#FFD700";
+      ctx.fillText("GO!", cv.width / 2, cv.height / 2);
+      ctx.restore();
+    }
+  }
+
+  requestAnimationFrame(animLoop);
+}
+requestAnimationFrame(animLoop);
+
+// ═══════════════════════════════════════════
+// EDIT PANEL
+// ═══════════════════════════════════════════
+function openPanel() {
+  document.getElementById("ep").classList.add("on");
+  document.getElementById("overlay").classList.add("on");
+  document.getElementById("main").classList.add("panel-open");
+  renderPanel();
+}
+function closePanel() {
+  document.getElementById("ep").classList.remove("on");
+  document.getElementById("overlay").classList.remove("on");
+  document.getElementById("main").classList.remove("panel-open");
+}
+function setTab(t) {
+  S.tab = t;
+  ["tracks","members","settings"].forEach(x =>
+    document.getElementById("tab-"+x).classList.toggle("active", x === t)
+  );
+  renderPanel();
+}
+
+function renderPanel() {
+  const body = document.getElementById("ep-body");
+  if (S.tab === "tracks")   body.innerHTML = tracksHTML();
+  if (S.tab === "members")  body.innerHTML = membersHTML();
+  if (S.tab === "settings") body.innerHTML = settingsHTML();
+  bindSliders();
+}
+
+// ── Tracks tab ──
+function tracksHTML() {
+  const runners = S.members.filter(m => m.role === "runner");
+  const hoppers = S.members.filter(m => m.role === "hopper");
+
+  return S.tracks.map(tr => {
+    const runner = S.members.find(m => m.id === tr.mainRunnerId);
+    const isExp = S.expandedTrack === tr.id;
+
+    let html = `<div class="ep-card" style="border-color:${runner ? runner.color + '44' : 'var(--border)'}">`;
+
+    // Track header row
+    html += `<div class="ep-row">
+      <span style="font-size:.9rem;font-weight:700;color:${runner ? runner.color : 'var(--text)'}">●</span>
+      <input type="text" class="ep-in flex1" value="${esc(tr.jurisdiction)}"
+             onchange="setJuris(${tr.id}, this.value)">
+      <button class="del-btn" onclick="delTrack(${tr.id})">✕</button>
+      <button class="track-expand-btn" onclick="toggleTrack(${tr.id})">
+        ${isExp ? "▲ Less" : "▼ Edit"}
+      </button>
+    </div>`;
+
+    if (isExp) {
+      // Main runner select
+      html += `<div style="margin-bottom:8px">
+        <label class="ep-lbl">Main Runner</label>
+        <select class="ep-in ep-sel" onchange="setMainRunner(${tr.id}, +this.value)">
+          ${runners.map(r => `<option value="${r.id}" ${r.id === tr.mainRunnerId ? "selected" : ""}>${r.name}</option>`).join("")}
+        </select>
+      </div>`;
+
+      // Hopper select
+      html += `<div class="ep-row2" style="margin-bottom:8px">
+        <div>
+          <label class="ep-lbl">Hopper (optional)</label>
+          <select class="ep-in ep-sel" onchange="setHopperMember(${tr.id}, +this.value)">
+            <option value="0" ${!tr.hopper ? "selected" : ""}>None</option>
+            ${hoppers.map(h => `<option value="${h.id}" ${tr.hopper && tr.hopper.memberId === h.id ? "selected" : ""}>${h.name}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="ep-lbl">Hopper on phase</label>
+          <select class="ep-in ep-sel" onchange="setHopperPhase(${tr.id}, +this.value)" ${!tr.hopper ? "disabled" : ""}>
+            ${tr.phases.map(p => `<option value="${p.id}" ${tr.hopper && tr.hopper.phaseId === p.id ? "selected" : ""}>${p.name}</option>`).join("")}
+          </select>
+        </div>
+      </div>`;
+
+      // Phases
+      html += `<div class="ep-phases-hdr">Phases</div>`;
+      html += tr.phases.map(ph => {
+        const statusOpts = ["not_started","in_progress","done"].map(s =>
+          `<option value="${s}" ${ph.status === s ? "selected" : ""}>${s.replace("_"," ")}</option>`
+        ).join("");
+        return `<div class="ep-phase-item">
+          <div class="ep-phase-row1">
+            <input type="color" value="${ph.color}" class="clr-pick"
+                   onchange="setPhaseColor(${tr.id},${ph.id},this.value)">
+            <input type="text" class="ep-in" style="flex:1" value="${esc(ph.name)}"
+                   onchange="setPhaseName(${tr.id},${ph.id},this.value)">
+            <button class="roll-btn ${ph.roll === 'B' ? 'is-b' : 'is-a'}" title="Toggle A/B roll"
+                    onclick="setPhaseRoll(${tr.id},${ph.id},'${ph.roll === 'B' ? 'A' : 'B'}')">${ph.roll || 'A'}</button>
+            <button class="del-btn" onclick="delPhase(${tr.id},${ph.id})">✕</button>
+          </div>
+          <div class="ep-phase-row2">
+            <div>
+              <label class="ep-lbl">Start</label>
+              <input type="text" class="ep-in date-in" value="${ph.start}"
+                     placeholder="YYYY-MM-DD"
+                     onblur="setPhaseStart(${tr.id},${ph.id},this.value,this)"
+                     onkeydown="if(event.key==='Enter'){this.blur()}">
+            </div>
+            <div>
+              <label class="ep-lbl">Days</label>
+              <input type="number" class="ep-in" value="${ph.duration ?? 5}" min="1" max="365"
+                     style="padding:6px 4px;text-align:center"
+                     onchange="setPhaseDuration(${tr.id},${ph.id},+this.value)">
+            </div>
+            <div>
+              <label class="ep-lbl">Ends</label>
+              <div class="ep-end-display">${fmtDate(phaseEnd(ph))}</div>
+            </div>
+            <div>
+              <label class="ep-lbl">Status</label>
+              <select class="ep-in ep-sel" onchange="setPhaseStatus(${tr.id},${ph.id},this.value)">
+                ${statusOpts}
+              </select>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+
+      html += `<button class="add-btn" onclick="addPhase(${tr.id})">＋ Add Phase</button>`;
+    }
+
+    html += `</div>`;
+    return html;
+  }).join("") + `<button class="add-btn" onclick="addTrack()">＋ Add Jurisdiction Track</button>`;
+}
+
+// ── Members tab ──
+function membersHTML() {
+  const renderGroup = (role, icon) => {
+    const list = S.members.filter(m => m.role === role);
+    return `<div class="section-lbl">${icon} ${role === "runner" ? "Main Runners" : "Hoppers"}</div>` +
+    list.map(m => `
+      <div class="ep-card">
+        <div class="ep-row">
+          <input type="color" value="${m.color}" class="clr-pick"
+                 onchange="setMemberColor(${m.id},this.value)">
+          <input type="text" class="ep-in flex1" value="${esc(m.name)}"
+                 onchange="setMemberName(${m.id},this.value)">
+          <select class="ep-in ep-sel w-auto" onchange="setMemberRole(${m.id},this.value)">
+            <option value="runner" ${m.role==="runner"?"selected":""}>Runner</option>
+            <option value="hopper" ${m.role==="hopper"?"selected":""}>Hopper</option>
+          </select>
+          <button class="del-btn" onclick="delMember(${m.id})">✕</button>
+        </div>
+      </div>
+    `).join("") +
+    `<button class="add-btn" onclick="addMember('${role}')">＋ Add ${role === "runner" ? "Runner" : "Hopper"}</button>`;
+  };
+  return renderGroup("runner","🏃") + "<br>" + renderGroup("hopper","🐇");
+}
+
+// ── Settings tab ──
+function settingsHTML() {
+  return `
+    <div>
+      <label class="ep-lbl">Project Name</label>
+      <input type="text" class="ep-in" value="${esc(S.projectName)}"
+             onchange="S.projectName=this.value;document.getElementById('proj-disp').textContent=this.value;saveState()">
+    </div>
+
+    <div class="section-lbl" style="margin-top:16px">Default Phase Timeline</div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;line-height:1.5">
+      Stamps 7 phases across all tracks starting from the chosen date.<br>
+      Wk 1: Parcel (A, 5d) + Land Value (B, 2d) &nbsp;|&nbsp; Wk 2: Assumptions (A, 4d)<br>
+      Wk 3: Policy (A, 5d) + Fees (B, 5d) &nbsp;|&nbsp; Wk 4: Integration (A, 4d) &nbsp;|&nbsp; Wk 5: Rollout (A, 4d)
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <label class="ep-lbl" style="margin:0;white-space:nowrap">Start date</label>
+      <input type="text" class="ep-in date-in" id="preset-start"
+             value="2026-03-10" placeholder="YYYY-MM-DD" style="flex:1">
+    </div>
+    <button class="preset-btn" style="font-family:var(--px-font);font-weight:700"
+            onclick="applyPreset('default')">↺ APPLY DEFAULT TIMELINE</button>
+
+    <div class="section-lbl" style="margin-top:16px">Other Presets</div>
+    <button class="preset-btn" onclick="applyPreset('scrum')">Scrum Sprint Phases</button>
+    <button class="preset-btn" onclick="applyPreset('product')">Product Lifecycle Phases</button>
+    <button class="preset-btn" onclick="applyPreset('research')">Research Project Phases</button>
+
+    <div class="section-lbl" style="margin-top:16px">Data</div>
+    <button class="preset-btn" style="color:#ef4444;border-color:#ef4444" onclick="clearSavedState()">✕ Reset to defaults</button>
+  `;
+}
+
+function bindSliders() {}
+
+// ═══════════════════════════════════════════
+// MUTATIONS
+// ═══════════════════════════════════════════
+function refresh() { invalidateRange(); renderTrack(); renderPanel(); saveState(); }
+
+function toggleTrack(id) { S.expandedTrack = S.expandedTrack === id ? null : id; renderPanel(); }
+
+function setJuris(id, v)      { mutT(id, t => t.jurisdiction = v); renderTrack(); saveState(); }
+function setMainRunner(id, v) { mutT(id, t => t.mainRunnerId = v); refresh(); }
+
+function setHopperMember(id, v) {
+  mutT(id, t => {
+    if (!v) { t.hopper = null; return; }
+    if (!t.hopper) t.hopper = { memberId: v, phaseId: t.phases[0]?.id };
+    else t.hopper.memberId = v;
+  });
+  refresh();
+}
+function setHopperPhase(id, v) { mutT(id, t => { if (t.hopper) t.hopper.phaseId = v; }); refresh(); }
+
+function delTrack(id)  { S.tracks = S.tracks.filter(t => t.id !== id); if (S.expandedTrack === id) S.expandedTrack = null; refresh(); }
+function addTrack() {
+  const palette = ["#EC4899","#6366F1","#14B8A6","#F97316","#EF4444","#84CC16"];
+  const runners = S.members.filter(m => m.role === "runner");
+  const newId = uid();
+  const newPhId = uid();
+  const yr = new Date().getFullYear();
+  S.tracks.push({
+    id: newId,
+    jurisdiction: `Jurisdiction ${S.tracks.length + 1}`,
+    mainRunnerId: runners[S.tracks.length % runners.length]?.id ?? 1,
+    hopper: null,
+    phases: [
+      { id: newPhId, name: "Phase 1", color: "#3B82F6", start: `${yr}-01-01`, duration: 5, status: "not_started", roll: "A" }
+    ]
+  });
+  S.expandedTrack = newId;
+  S.tracks.slice(-1)[0]._dpr = 0; S.tracks.slice(-1)[0]._dph = 0;
+  refresh();
+}
+
+function setPhaseColor(tid, pid, v)   { mutP(tid, pid, p => p.color = v); renderTrack(); saveState(); }
+function setPhaseName(tid, pid, v)    { mutP(tid, pid, p => p.name = v); renderTrack(); saveState(); }
+function setPhaseRoll(tid, pid, v)    { mutP(tid, pid, p => p.roll = v); refresh(); }
+function normDate(v) {
+  v = (v || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    return isNaN(new Date(v + "T12:00:00")) ? null : v;
+  }
+  // Accept M/D/YYYY or MM/DD/YYYY
+  const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const iso = `${m[3]}-${m[1].padStart(2,"0")}-${m[2].padStart(2,"0")}`;
+    return isNaN(new Date(iso + "T12:00:00")) ? null : iso;
+  }
+  return null;
+}
+function setPhaseStart(tid, pid, v, el) {
+  const norm = normDate(v);
+  if (!norm) {
+    if (el) { el.classList.add("date-err"); el.select(); }
+    return;
+  }
+  if (el) { el.classList.remove("date-err"); el.value = norm; }
+  mutP(tid, pid, p => p.start = norm);
+  refresh();
+}
+function setPhaseDuration(tid, pid, n) {
+  const d = Math.max(1, Math.round(n) || 1);
+  mutP(tid, pid, p => p.duration = d);
+  refresh();
+}
+function setPhaseStatus(tid, pid, v)  { mutP(tid, pid, p => p.status = v); renderTrack(); }
+function delPhase(tid, pid) {
+  mutT(tid, t => {
+    t.phases = t.phases.filter(p => p.id !== pid);
+    if (t.hopper && t.hopper.phaseId === pid) t.hopper = null;
+  });
+  refresh();
+}
+function addPhase(tid) {
+  mutT(tid, t => {
+    const last = t.phases[t.phases.length - 1];
+    const colors = ["#10B981","#3B82F6","#F59E0B","#8B5CF6","#EF4444","#EC4899"];
+    const newStart = last ? addWeekdays(phaseEnd(last), 1) : new Date().toISOString().slice(0,10);
+    t.phases.push({
+      id: uid(),
+      name: `Phase ${t.phases.length + 1}`,
+      color: colors[t.phases.length % colors.length],
+      start: newStart,
+      duration: 5,
+      status: "not_started", roll: "A"
+    });
+  });
+  refresh();
+}
+
+function setMemberColor(id, c) { mutM(id, m => m.color = c); refresh(); }
+function setMemberName(id, n)  { mutM(id, m => m.name = n); renderTrack(); renderPanel(); saveState(); }
+function setMemberRole(id, r)  { mutM(id, m => m.role = r); refresh(); }
+function delMember(id)         { S.members = S.members.filter(m => m.id !== id); refresh(); }
+function addMember(role) {
+  const palette = ["#EC4899","#6366F1","#14B8A6","#F97316","#EF4444","#84CC16","#06B6D4"];
+  S.members.push({ id: uid(), name: role === "runner" ? `Runner ${S.members.filter(m=>m.role==="runner").length+1}` : `Hopper ${S.members.filter(m=>m.role==="hopper").length+1}`, color: palette[S.members.length % palette.length], role });
+  refresh();
+}
+
+function applyPreset(type) {
+  if (type === "default") {
+    const startEl = document.getElementById("preset-start");
+    const startStr = normDate(startEl?.value);
+    if (!startStr) { if (startEl) { startEl.classList.add("date-err"); startEl.select(); } return; }
+    if (startEl) { startEl.classList.remove("date-err"); startEl.value = startStr; }
+    // 5-week schedule: [name, color, weekdayOffset, duration, roll]
+    const defs = [
+      ["Parcel",      "#3B82F6",  0,  5, "A"],
+      ["Land Value",  "#10B981",  0,  2, "B"],
+      ["Assumptions", "#F59E0B",  5,  4, "A"],
+      ["Policy",      "#EC4899", 10,  5, "A"],
+      ["Fees",        "#EF4444", 10,  5, "B"],
+      ["Integration", "#06B6D4", 15,  4, "A"],
+      ["Rollout",     "#F97316", 20,  4, "A"],
+    ];
+    S.tracks.forEach(tr => {
+      tr.phases = defs.map(([name, color, wd, duration, roll]) => ({
+        id: uid(), name, color,
+        start: addWeekdays(startStr, wd),
+        duration,
+        status: "not_started", roll
+      }));
+      tr._dpr = 0; tr._dph = 0;
+    });
+    refresh();
+    return;
+  }
+
+  const presets = {
+    scrum:    [["Planning","#64748b",0,15],["Dev","#3B82F6",15,55],["Review","#F59E0B",55,75],["QA","#8B5CF6",75,88],["Done","#10B981",88,100]],
+    product:  [["Discovery","#10B981",0,20],["Design","#3B82F6",20,40],["Build","#F59E0B",40,70],["Test","#8B5CF6",70,85],["Launch","#EF4444",85,100]],
+    research: [["Lit Review","#6366F1",0,20],["Data Collect","#14B8A6",20,45],["Analysis","#F97316",45,70],["Write-up","#EC4899",70,88],["Review","#84CC16",88,100]],
+  };
+  const defs = presets[type]; if (!defs) return;
+  const yr = new Date().getFullYear();
+  const totalDays = 365;
+  S.tracks.forEach(tr => {
+    tr.phases = defs.map(([name, color, s, e]) => ({
+      id: uid(), name, color,
+      start: addDays(`${yr}-01-01`, Math.round(s/100*totalDays)),
+      end:   addDays(`${yr}-01-01`, Math.round(e/100*totalDays)),
+      status: "not_started"
+    }));
+  });
+  refresh();
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function mkEl(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls.trim(); return e; }
+function mkRow(cls) { const e = mkEl("div", "track-row " + (cls||"")); return e; }
+function txt(s) { return document.createTextNode(s); }
+function mutT(id, fn) { const t = S.tracks.find(x => x.id === id); if (t) fn(t); }
+function mutP(tid, pid, fn) { mutT(tid, t => { const p = t.phases.find(x => x.id === pid); if (p) fn(p); }); }
+function mutM(id, fn) { const m = S.members.find(x => x.id === id); if (m) fn(m); }
+function hexA(hex, a) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+function shiftMonths(dateStr, n) {
+  const d = pd(dateStr); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0,10);
+}
+function addDays(dateStr, n) {
+  const d = pd(dateStr); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10);
+}
+function addWeekdays(dateStr, n) {
+  if (n <= 0) return dateStr;
+  let d = pd(dateStr);
+  let count = 0;
+  while (count < n) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return d.toISOString().slice(0, 10);
+}
+function phaseEnd(ph) {
+  const dur = (ph.duration ?? 5);
+  if (dur <= 1) return ph.start;
+  return addWeekdays(ph.start, dur - 1);
+}
+function countWeekdays(start, end) {
+  let d = pd(start), e = pd(end);
+  const dow0 = d.getDay();
+  let count = (dow0 !== 0 && dow0 !== 6) ? 1 : 0;
+  while (d.getTime() < e.getTime()) {
+    d.setDate(d.getDate() + 1);
+    const wd = d.getDay();
+    if (wd !== 0 && wd !== 6) count++;
+  }
+  return Math.max(1, count);
+}
+
+// ── Init ──
+// ── Dual-mode init ──────────────────────────────────────────────────────────
+// When embedded in Next.js, window.__SPRINT_STATE__ is injected before </head>
+// by SprintRace.tsx. When opened as a standalone file, falls back to localStorage.
+if (window.__SPRINT_STATE__) {
+  // ── Server-driven mode (Next.js + Supabase) ──
+  const ext = window.__SPRINT_STATE__;
+  S.projectName = ext.projectName ?? S.projectName;
+  S.members     = ext.members     ?? S.members;
+  S.tracks      = ext.tracks      ?? S.tracks;
+  const allIds  = [
+    ...S.members.map(m => m.id),
+    ...S.tracks.flatMap(t => [t.id, ...t.phases.map(p => p.id)]),
+  ];
+  _uid = Math.max(100, ...allIds) + 1;
+} else {
+  // ── Standalone mode (localStorage) ──
+  loadSavedState();
+  // Migration: handle saved data from older schema versions
+  S.tracks.forEach(t => {
+    t.phases = t.phases.filter(p => p.name !== "Zoning");
+    t.phases.forEach(p => {
+      if (!p.roll) p.roll = ["Land Value", "Fees"].includes(p.name) ? "B" : "A";
+      if (p.duration == null && p.end) {
+        p.duration = countWeekdays(p.start, p.end);
+        delete p.end;
+      }
+      if (p.duration == null) p.duration = 5;
+    });
+    if (t.hopper && !t.phases.find(p => p.id === t.hopper.phaseId)) {
+      const bPh = t.phases.find(p => p.roll === "B");
+      if (bPh) t.hopper.phaseId = bPh.id; else t.hopper = null;
+    }
+  });
+}
+document.getElementById("proj-disp").textContent = S.projectName;
+// Start everyone at the start line — animation values always reset to 0 on load
+S.tracks.forEach(t => { t._dpr = 0; t._dph = 0; });
+renderTrack();
+</script>
+</body>
+</html>

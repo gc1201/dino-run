@@ -1,0 +1,29 @@
+/* Shell styles for the Next.js wrapper — the animation has its own styles inside the iframe */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0a0a0a;
+  --surface: #111;
+  --border:  #222;
+  --text:    #e8e8e8;
+  --muted:   #555;
+  --accent:  #ffffff;
+  --font:    'Courier New', Courier, monospace;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
