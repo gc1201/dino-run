@@ -8,15 +8,15 @@
 
 ## What It Is
 
-A multi-jurisdiction sprint race tracker styled as a Chrome Dinosaur game. Team members are represented as pixel-art dino sprites racing across a Gantt-style track divided by project phase. A pterodactyl represents a "hopper" — a team member who assists across multiple tracks in parallel.
+A multi-jurisdiction sprint race tracker styled as a Chrome Dinosaur game. Team members are represented as pixel-art dino sprites racing across a Gantt-style track divided by project phase. Pterodactyls represent "hoppers" — team members who assist across multiple tracks on B-roll phases in parallel. Hoppers only appear on screen when their assigned phase is actively in progress.
 
-The app is built to track a single, time-boxed multi-city project (Arnold Sprint) with five jurisdictions running the same workflow on independent timelines.
+The app tracks a single, time-boxed multi-city project (Arnold Sprint) with four jurisdictions running the same workflow on independent timelines.
 
 ---
 
 ## The Problem It Solves
 
-Managing parallel workstreams across five cities in a spreadsheet loses two things: **at-a-glance progress** and **team energy**. A shared Gantt chart shows where everyone is, but doesn't communicate urgency or momentum. This tracker makes sprint status something people actually want to open.
+Managing parallel workstreams across multiple cities in a spreadsheet loses two things: **at-a-glance progress** and **team energy**. A shared Gantt chart shows where everyone is, but doesn't communicate urgency or momentum. This tracker makes sprint status something people actually want to open.
 
 ---
 
@@ -27,21 +27,22 @@ Managing parallel workstreams across five cities in a spreadsheet loses two thin
 | Ivy     | Runner  | Durham, Charlottesville |
 | Megan   | Runner  | Raleigh                 |
 | Darrell | Runner  | Flagstaff               |
-| Arian   | Runner  | AZ city TBD             |
+| Arian   | Runner  | (available)             |
 | Haley   | Hopper  | Durham, Flagstaff       |
-| Sarah   | Hopper  | Raleigh, AZ city TBD   |
+| Sarah   | Hopper  | Durham, Raleigh         |
 
 ---
 
 ## Jurisdictions
 
-| City             | Runner  | Hopper | Notes               |
-|------------------|---------|--------|---------------------|
-| Durham           | Ivy     | Haley  |                     |
-| Raleigh          | Megan   | Sarah  |                     |
-| Flagstaff        | Darrell | Haley  |                     |
-| Charlottesville  | Ivy     | —      |                     |
-| AZ city TBD      | TBD     | Sarah  | Runner unconfirmed  |
+| City             | Runner  | Hopper 1 | Hopper 2 | Notes |
+|------------------|---------|----------|----------|-------|
+| Durham           | Ivy     | Haley (Land Value) | Sarah (Fees) | |
+| Raleigh          | Megan   | Sarah (Land Value) | — | |
+| Flagstaff        | Darrell | Haley (Fees) | — | |
+| Charlottesville  | Ivy     | —        | —        | |
+
+Jurisdictions can be added or removed dynamically from the sidebar.
 
 ---
 
@@ -53,7 +54,7 @@ Each jurisdiction runs the same seven phases, split into two parallel strips:
 
 | Phase       | Default Duration | Color    |
 |-------------|-----------------|----------|
-| Parcel      | 5 weekdays      | Blue     |
+| Parcel      | 9 weekdays      | Blue     |
 | Assumptions | 4 weekdays      | Amber    |
 | Policy      | 5 weekdays      | Pink     |
 | Integration | 4 weekdays      | Cyan     |
@@ -66,7 +67,7 @@ Each jurisdiction runs the same seven phases, split into two parallel strips:
 | Land Value  | 2 weekdays      | Green    |
 | Fees        | 5 weekdays      | Red      |
 
-Default timeline starts **March 10, 2026** and spans ~5 weeks.
+Default timeline starts **March 10, 2026** and spans ~6 weeks.
 
 ---
 
@@ -74,10 +75,24 @@ Default timeline starts **March 10, 2026** and spans ~5 weeks.
 
 1. On page load, everyone waits at the **start line**
 2. Press **Space** (or click) → race begins, sprites lerp toward their real positions
-3. **Runner position** is computed linearly from A-roll phase status: `done` phases advance to their end date, `in_progress` clamps to today, `not_started` stops progress
-4. **Hopper position** follows the same logic on B-roll phases independently
-5. Phase boundaries are marked with **pixel cacti**; the last phase ends with a **checkered finish flag**
-6. A **"?" dino** renders in grey for the unconfirmed AZ runner
+3. **Runner position** (T-Rex) is computed linearly from A-roll phase status: `done` phases advance to their end date, `in_progress` clamps to today, `not_started` stops progress
+4. **Hopper position** (Pterodactyl) follows the same logic on B-roll phases — **only visible when their assigned phase is in progress**; hidden when not started or done
+5. Phase boundaries are marked with **pixel cacti**; the last A-roll phase ends with a **checkered finish flag**
+6. **B-roll strips above A-roll strips**, both rendered at the bottom of each lane as timeline indicators
+7. Each track lane has a **bordered background** with a runner-colored left accent for visual bundling
+
+---
+
+## Editing Flow
+
+1. Open the app → **sidebar** shows all tracks with their phases
+2. Assign a **runner** to each track from a dropdown
+3. Assign up to **2 hoppers** per track, each linked to a specific B-roll phase
+4. Set **due dates** per phase (start dates are back-computed from due date and duration)
+5. Toggle phase **A/B roll**, change **duration** or **status** inline
+6. Set a **timeline start** per track — changing it shifts all phases by the delta
+7. **Add/delete jurisdictions** from the sidebar
+8. Hit **SAVE** → API updates Supabase → page refreshes → race resets with updated positions
 
 ---
 
@@ -94,7 +109,7 @@ Default timeline starts **March 10, 2026** and spans ~5 weeks.
 
 `public/sprint_tracker.html` is **dual-mode**:
 - Opened directly → uses `localStorage` with a built-in edit panel (fully offline, no server needed)
-- Embedded in Next.js → reads `window.__SPRINT_STATE__` injected by the server with live Supabase data
+- Embedded in Next.js → reads `window.__SPRINT_STATE__` injected by the server with live Supabase data; HTML edit button is hidden (editing done via React sidebar)
 
 This means the HTML file works as both a **standalone shareable snapshot** and the **live app's animation engine** — no duplication.
 
@@ -105,20 +120,28 @@ This means the HTML file works as both a **standalone shareable snapshot** and t
 ```
 members  (id, name, color, role, sort_order)
     ↓
-tracks   (id, jurisdiction, main_runner_id, hopper_member_id, hopper_phase_name, sort_order)
+tracks   (id, jurisdiction, main_runner_id,
+          hopper_member_id, hopper_phase_name,
+          hopper2_member_id, hopper2_phase_name,
+          timeline_start, sort_order)
     ↓
 phases   (id, track_id, name, color, start, duration, status, roll, sort_order, updated_at)
 ```
 
-Phase `duration` is stored in **weekdays** (skips Saturday/Sunday). End date is always computed — never stored — keeping the model clean and preventing inconsistent states.
+- **Two hoppers per track** — each assigned to a specific B-roll phase by name
+- **Timeline start** — per-track date; changing it shifts all phase start dates
+- Phase `duration` is stored in **weekdays** (skips Saturday/Sunday). End date is always computed — never stored — keeping the model clean and preventing inconsistent states.
 
 ---
 
-## Editing Flow
+## API Endpoints
 
-1. Open the app → sidebar shows all tracks and phases
-2. Edit `start date`, `duration (days)`, or `status` inline
-3. Hit **SAVE** → `PATCH /api/phases/[id]` → Supabase updates → page refreshes with new data → race resets to start line with updated positions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| PATCH | `/api/phases/[id]` | Update phase start, duration, status, roll |
+| POST | `/api/tracks` | Create new jurisdiction with default phases |
+| PATCH | `/api/tracks/[id]` | Update track fields (runner, hoppers, timeline start) |
+| DELETE | `/api/tracks/[id]` | Delete jurisdiction and all its phases (cascade) |
 
 ---
 
@@ -128,7 +151,7 @@ Phase `duration` is stored in **weekdays** (skips Saturday/Sunday). End date is 
 # 1. Install
 npm install
 
-# 2. Create Supabase project → copy connection strings
+# 2. Create Supabase project → copy connection string
 cp .env.example .env.local && vim .env.local
 
 # 3. Push schema
@@ -159,13 +182,16 @@ Deploy: push to GitHub → connect repo in Vercel → add `DATABASE_URL` env var
 
 ```
 arnold-sprint/
-├── app/page.tsx                  ← fetches DB, passes state to components
-├── app/api/phases/[id]/route.ts  ← PATCH endpoint
-├── components/SprintRace.tsx     ← injects state into iframe animation
-├── components/EditPanel.tsx      ← sidebar edit UI
-├── db/schema.ts                  ← Drizzle table definitions
-├── db/seed.ts                    ← default Arnold Sprint data
-├── lib/queries.ts                ← all DB queries
-├── lib/state.ts                  ← DB rows → animation state shape
-└── public/sprint_tracker.html   ← dual-mode canvas animation
+├── app/page.tsx                     ← fetches DB, renders sidebar + animation
+├── app/api/phases/[id]/route.ts     ← PATCH endpoint for phases
+├── app/api/tracks/route.ts          ← POST endpoint to create tracks
+├── app/api/tracks/[id]/route.ts     ← PATCH/DELETE endpoints for tracks
+├── components/SprintRace.tsx        ← injects state into iframe animation
+├── components/EditPanel.tsx         ← sidebar edit UI (DB-connected)
+├── db/schema.ts                     ← Drizzle table definitions
+├── db/seed.ts                       ← default Arnold Sprint data
+├── db/migrations/                   ← SQL migration files
+├── lib/queries.ts                   ← all DB queries + track CRUD
+├── lib/state.ts                     ← DB rows → animation state shape
+└── public/sprint_tracker.html       ← dual-mode canvas animation
 ```
