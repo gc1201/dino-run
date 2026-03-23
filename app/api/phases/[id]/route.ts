@@ -26,11 +26,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Only allow the three editable fields
+  // Only allow the editable fields
   const update: PhaseUpdate = {};
   if (typeof body.start === "string")    update.start    = body.start;
   if (typeof body.duration === "number") update.duration = body.duration;
   if (typeof body.status === "string")   update.status   = body.status;
+  if (typeof body.roll === "string")     update.roll     = body.roll;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });

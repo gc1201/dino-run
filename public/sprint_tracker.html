@@ -117,7 +117,7 @@
 
     .lane-body {
       position: relative;
-      height: 200px;
+      height: 90px;
     }
 
     /* Phase strip — pixel style */
@@ -128,8 +128,8 @@
       overflow: hidden;
       background: #1a1a1a;
     }
-    .phase-strip.strip-a { top: 2px; }
-    .phase-strip.strip-b { top: 104px; }
+    .phase-strip.strip-b { top: 2px; }
+    .phase-strip.strip-a { top: 28px; }
 
     /* A/B roll label */
     .roll-label {
@@ -138,13 +138,13 @@
       font-weight: 700; color: var(--muted);
       letter-spacing: 0.05em;
     }
-    .roll-label.label-a { top: 8px; }
-    .roll-label.label-b { top: 110px; }
+    .roll-label.label-b { top: 8px; }
+    .roll-label.label-a { top: 34px; }
 
     /* Lane divider */
     .lane-divider {
       position: absolute; left: 0; right: 0;
-      top: 99px; height: 1px;
+      top: 24px; height: 1px;
       background: #2a2a2a;
     }
 
@@ -183,8 +183,8 @@
     .flag-row { display: none; }
 
     /* Track bars — invisible, only for getBoundingClientRect positioning */
-    .track-bar-a { position: absolute; top: 88px; left: 0; right: 0; height: 4px; background: transparent; }
-    .track-bar-b { position: absolute; top: 183px; left: 0; right: 0; height: 4px; background: transparent; }
+    .track-bar-b { position: absolute; top: 22px; left: 0; right: 0; height: 4px; background: transparent; }
+    .track-bar-a { position: absolute; top: 52px; left: 0; right: 0; height: 4px; background: transparent; }
 
     /* TODAY line — gold vertical dashes */
     .today-line {
@@ -412,7 +412,7 @@ let S = {
     {
       id: 1, jurisdiction: "Durham",
       mainRunnerId: 1,
-      hopper: { memberId: 5, phaseId: 12 }, // Haley on Land Value (B)
+      hoppers: [{ memberId: 5, phaseId: 12 }, { memberId: 6, phaseId: 15 }], // Haley on Land Value, Sarah on Fees
       phases: [
         { id: 11, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
         { id: 12, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
@@ -426,7 +426,7 @@ let S = {
     {
       id: 2, jurisdiction: "Raleigh",
       mainRunnerId: 2,
-      hopper: { memberId: 6, phaseId: 22 }, // Sarah on Land Value (B)
+      hoppers: [{ memberId: 6, phaseId: 22 }], // Sarah on Land Value
       phases: [
         { id: 21, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
         { id: 22, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
@@ -440,7 +440,7 @@ let S = {
     {
       id: 3, jurisdiction: "Flagstaff",
       mainRunnerId: 3,
-      hopper: { memberId: 5, phaseId: 35 }, // Haley on Fees (B)
+      hoppers: [{ memberId: 5, phaseId: 35 }], // Haley on Fees
       phases: [
         { id: 31, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
         { id: 32, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
@@ -454,7 +454,7 @@ let S = {
     {
       id: 5, jurisdiction: "Charlottesville",
       mainRunnerId: 1,
-      hopper: null,
+      hoppers: [],
       phases: [
         { id: 51, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "in_progress", roll: "A" },
         { id: 52, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
@@ -466,19 +466,6 @@ let S = {
       ]
     },
     {
-      id: 4, jurisdiction: "AZ city tbd",
-      mainRunnerId: null,
-      hopper: { memberId: 6, phaseId: 45 }, // Sarah on Fees (B)
-      phases: [
-        { id: 41, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
-        { id: 42, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
-        { id: 43, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
-        { id: 44, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
-        { id: 45, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
-        { id: 46, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
-        { id: 47, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
-      ]
-    },
   ],
 };
 
@@ -535,7 +522,7 @@ function computeRunnerPct(track) {
 
 function computeHopperPct(track) {
   // Hopper works B-roll phases sequentially (parallel to A-roll)
-  if (!track.hopper) return null;
+  if (!track.hoppers || track.hoppers.length === 0) return null;
   const bPhases = track.phases.filter(p => p.roll === "B");
   if (bPhases.length === 0) return null;
   return phasePct(bPhases);
@@ -642,18 +629,18 @@ function renderTrack() {
     const aPhases = track.phases.filter(p => p.roll !== "B");
     const bPhases = track.phases.filter(p => p.roll === "B");
 
-    // A-roll label + strip
-    const lblA = mkEl("div", "roll-label label-a"); lblA.textContent = "A";
-    laneBody.appendChild(lblA);
-    laneBody.appendChild(buildStrip(aPhases, "strip-a"));
+    // B-roll label + strip (top)
+    const lblB = mkEl("div", "roll-label label-b"); lblB.textContent = "B";
+    laneBody.appendChild(lblB);
+    laneBody.appendChild(buildStrip(bPhases, "strip-b"));
 
     // Lane divider
     laneBody.appendChild(mkEl("div", "lane-divider"));
 
-    // B-roll label + strip
-    const lblB = mkEl("div", "roll-label label-b"); lblB.textContent = "B";
-    laneBody.appendChild(lblB);
-    laneBody.appendChild(buildStrip(bPhases, "strip-b"));
+    // A-roll label + strip (bottom)
+    const lblA = mkEl("div", "roll-label label-a"); lblA.textContent = "A";
+    laneBody.appendChild(lblA);
+    laneBody.appendChild(buildStrip(aPhases, "strip-a"));
 
     // Invisible trackbars for canvas positioning
     const tbarA = mkEl("div", "track-bar-a"); tbarA.id = `trackbar-a-${track.id}`;
@@ -851,8 +838,8 @@ function drawPtero(x, groundY, color, frame) {
   const sp = PTERO[frame & 1];
   const w = sp[0].length * PX;
   const h = sp.length * PX;
-  // flies above the dino (~45px above ground)
-  drawSprite(sp, x - w / 2, groundY - h - 46, color);
+  // flies above the track bar
+  drawSprite(sp, x - w / 2, groundY - h - 10, color);
 }
 
 function drawCactus(x, groundY, color) {
@@ -947,7 +934,7 @@ function animLoop(ts) {
     const gateH = DINO[0].length * PX + 14;
     ctx.fillStyle = "rgba(255,255,255,0.2)";
     ctx.fillRect(laneLeft, gyA - gateH, 2, gateH);
-    ctx.fillRect(laneLeft, gyB - PTERO[0].length * PX - 26, 2, PTERO[0].length * PX + 26);
+    ctx.fillRect(laneLeft, gyB - PTERO[0].length * PX - 12, 2, PTERO[0].length * PX + 12);
 
     // Cacti / finish flags for A-roll phases
     const aPhases = track.phases.filter(p => p.roll !== "B");
@@ -974,7 +961,7 @@ function animLoop(ts) {
     const runner = S.members.find(m => m.id === track.mainRunnerId);
     const runnerColor = runner ? runner.color : "#555";
     const runnerLabel = runner ? runner.name : "?";
-    const hopperM = track.hopper ? S.members.find(m => m.id === track.hopper.memberId) : null;
+    const hopperMembers = (track.hoppers || []).map(h => S.members.find(m => m.id === h.memberId)).filter(Boolean);
     const targetH = computeHopperPct(track);
 
     if (gameState === "waiting") {
@@ -982,10 +969,13 @@ function animLoop(ts) {
       const sx = laneLeft + 20;
       drawDino(sx, gyA, runnerColor, idleFrame);
       drawLabel(sx, gyA - DINO[0].length * PX - 5, runnerLabel, runnerColor);
-      if (hopperM && targetH !== null) {
-        drawPtero(sx, gyB, hopperM.color, idleFrame + 1);
-        drawLabel(sx, gyB - PTERO[0].length * PX - 26, hopperM.name, hopperM.color);
-      }
+      hopperMembers.forEach((hm, i) => {
+        if (hm && targetH !== null) {
+          const yOff = i * 14;
+          drawPtero(sx + i * 30, gyB - yOff, hm.color, idleFrame + 1 + i);
+          drawLabel(sx + i * 30, gyB - PTERO[0].length * PX - 12 - yOff, hm.name, hm.color);
+        }
+      });
     } else {
       // ── RACING: lerp toward real targets ──
       const targetR = computeRunnerPct(track);
@@ -997,12 +987,15 @@ function animLoop(ts) {
       drawLabel(rx, gyA - DINO[0].length * PX - 5,
         `${runnerLabel} ${Math.round(track._dpr)}%`, runnerColor);
 
-      if (hopperM && targetH !== null) {
-        const hx = laneLeft + (track._dph / 100) * laneWidth;
-        drawPtero(hx, gyB, hopperM.color, _animFrame + 1);
-        drawLabel(hx, gyB - PTERO[0].length * PX - 26,
-          `${hopperM.name} ${Math.round(track._dph)}%`, hopperM.color);
-      }
+      hopperMembers.forEach((hm, i) => {
+        if (hm && targetH !== null) {
+          const hx = laneLeft + (track._dph / 100) * laneWidth;
+          const yOff = i * 14;
+          drawPtero(hx + i * 30, gyB - yOff, hm.color, _animFrame + 1 + i);
+          drawLabel(hx + i * 30, gyB - PTERO[0].length * PX - 12 - yOff,
+            `${hm.name} ${Math.round(track._dph)}%`, hm.color);
+        }
+      });
     }
   });
 
@@ -1105,18 +1098,19 @@ function tracksHTML() {
       </div>`;
 
       // Hopper select
+      const hop0 = tr.hoppers && tr.hoppers[0];
       html += `<div class="ep-row2" style="margin-bottom:8px">
         <div>
           <label class="ep-lbl">Hopper (optional)</label>
           <select class="ep-in ep-sel" onchange="setHopperMember(${tr.id}, +this.value)">
-            <option value="0" ${!tr.hopper ? "selected" : ""}>None</option>
-            ${hoppers.map(h => `<option value="${h.id}" ${tr.hopper && tr.hopper.memberId === h.id ? "selected" : ""}>${h.name}</option>`).join("")}
+            <option value="0" ${!hop0 ? "selected" : ""}>None</option>
+            ${hoppers.map(h => `<option value="${h.id}" ${hop0 && hop0.memberId === h.id ? "selected" : ""}>${h.name}</option>`).join("")}
           </select>
         </div>
         <div>
           <label class="ep-lbl">Hopper on phase</label>
-          <select class="ep-in ep-sel" onchange="setHopperPhase(${tr.id}, +this.value)" ${!tr.hopper ? "disabled" : ""}>
-            ${tr.phases.map(p => `<option value="${p.id}" ${tr.hopper && tr.hopper.phaseId === p.id ? "selected" : ""}>${p.name}</option>`).join("")}
+          <select class="ep-in ep-sel" onchange="setHopperPhase(${tr.id}, +this.value)" ${!hop0 ? "disabled" : ""}>
+            ${tr.phases.map(p => `<option value="${p.id}" ${hop0 && hop0.phaseId === p.id ? "selected" : ""}>${p.name}</option>`).join("")}
           </select>
         </div>
       </div>`;
@@ -1245,15 +1239,16 @@ function setMainRunner(id, v) { mutT(id, t => t.mainRunnerId = v); refresh(); }
 
 function setHopperMember(id, v) {
   mutT(id, t => {
-    if (!v) { t.hopper = null; return; }
-    if (!t.hopper) t.hopper = { memberId: v, phaseId: t.phases[0]?.id };
-    else t.hopper.memberId = v;
+    if (!t.hoppers) t.hoppers = [];
+    if (!v) { t.hoppers = []; return; }
+    if (t.hoppers.length === 0) t.hoppers.push({ memberId: v, phaseId: t.phases[0]?.id });
+    else t.hoppers[0].memberId = v;
   });
   refresh();
 }
-function setHopperPhase(id, v) { mutT(id, t => { if (t.hopper) t.hopper.phaseId = v; }); refresh(); }
+function setHopperPhase(id, v) { mutT(id, t => { if (t.hoppers && t.hoppers[0]) t.hoppers[0].phaseId = v; }); refresh(); }
 
-function delTrack(id)  { S.tracks = S.tracks.filter(t => t.id !== id); if (S.expandedTrack === id) S.expandedTrack = null; refresh(); }
+function delTrack(id)  { if (!confirm("Delete this track?")) return; S.tracks = S.tracks.filter(t => t.id !== id); if (S.expandedTrack === id) S.expandedTrack = null; refresh(); }
 function addTrack() {
   const palette = ["#EC4899","#6366F1","#14B8A6","#F97316","#EF4444","#84CC16"];
   const runners = S.members.filter(m => m.role === "runner");
@@ -1264,7 +1259,7 @@ function addTrack() {
     id: newId,
     jurisdiction: `Jurisdiction ${S.tracks.length + 1}`,
     mainRunnerId: runners[S.tracks.length % runners.length]?.id ?? 1,
-    hopper: null,
+    hoppers: [],
     phases: [
       { id: newPhId, name: "Phase 1", color: "#3B82F6", start: `${yr}-01-01`, duration: 5, status: "not_started", roll: "A" }
     ]
@@ -1309,7 +1304,7 @@ function setPhaseStatus(tid, pid, v)  { mutP(tid, pid, p => p.status = v); rende
 function delPhase(tid, pid) {
   mutT(tid, t => {
     t.phases = t.phases.filter(p => p.id !== pid);
-    if (t.hopper && t.hopper.phaseId === pid) t.hopper = null;
+    if (t.hoppers) t.hoppers = t.hoppers.filter(h => h.phaseId !== pid);
   });
   refresh();
 }
@@ -1465,10 +1460,20 @@ if (window.__SPRINT_STATE__) {
       }
       if (p.duration == null) p.duration = 5;
     });
-    if (t.hopper && !t.phases.find(p => p.id === t.hopper.phaseId)) {
-      const bPh = t.phases.find(p => p.roll === "B");
-      if (bPh) t.hopper.phaseId = bPh.id; else t.hopper = null;
+    // Migrate old hopper format to hoppers[]
+    if (t.hopper && !t.hoppers) {
+      t.hoppers = [t.hopper];
+      delete t.hopper;
     }
+    if (!t.hoppers) t.hoppers = [];
+    t.hoppers = t.hoppers.filter(h => {
+      if (!t.phases.find(p => p.id === h.phaseId)) {
+        const bPh = t.phases.find(p => p.roll === "B");
+        if (bPh) { h.phaseId = bPh.id; return true; }
+        return false;
+      }
+      return true;
+    });
   });
 }
 document.getElementById("proj-disp").textContent = S.projectName;

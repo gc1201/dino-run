@@ -32,11 +32,10 @@ const DEFAULT_PHASES = [
 ] as const;
 
 const DEFAULT_TRACKS = [
-  { jurisdiction: "Durham",         runnerIdx: 0, hopperIdx: 4, hopperPhase: "Land Value", sortOrder: 0 },
-  { jurisdiction: "Raleigh",        runnerIdx: 1, hopperIdx: 5, hopperPhase: "Land Value", sortOrder: 1 },
-  { jurisdiction: "Flagstaff",      runnerIdx: 2, hopperIdx: 4, hopperPhase: "Fees",        sortOrder: 2 },
-  { jurisdiction: "Charlottesville",runnerIdx: 0, hopperIdx: null, hopperPhase: null,       sortOrder: 3 },
-  { jurisdiction: "AZ city tbd",    runnerIdx: null, hopperIdx: 5, hopperPhase: "Fees",     sortOrder: 4 },
+  { jurisdiction: "Durham",         runnerIdx: 0, hopperIdx: 4, hopperPhase: "Land Value", hopper2Idx: 5, hopper2Phase: "Fees",       sortOrder: 0 },
+  { jurisdiction: "Raleigh",        runnerIdx: 1, hopperIdx: 5, hopperPhase: "Land Value", hopper2Idx: null, hopper2Phase: null,       sortOrder: 1 },
+  { jurisdiction: "Flagstaff",      runnerIdx: 2, hopperIdx: 4, hopperPhase: "Fees",       hopper2Idx: null, hopper2Phase: null,       sortOrder: 2 },
+  { jurisdiction: "Charlottesville",runnerIdx: 0, hopperIdx: null, hopperPhase: null,       hopper2Idx: null, hopper2Phase: null,       sortOrder: 3 },
 ] as const;
 
 // ── Seed ──────────────────────────────────────────────────────────────────────
@@ -62,6 +61,8 @@ async function seed() {
     const runner = t.runnerIdx !== null ? insertedMembers[t.runnerIdx] : null;
     const hopper = t.hopperIdx !== null ? insertedMembers[t.hopperIdx] : null;
 
+    const hopper2 = t.hopper2Idx !== null ? insertedMembers[t.hopper2Idx] : null;
+
     const [track] = await db
       .insert(tracks)
       .values({
@@ -69,6 +70,8 @@ async function seed() {
         mainRunnerId:    runner?.id ?? null,
         hopperMemberId:  hopper?.id ?? null,
         hopperPhaseName: t.hopperPhase ?? null,
+        hopper2MemberId: hopper2?.id ?? null,
+        hopper2PhaseName: t.hopper2Phase ?? null,
         sortOrder:       t.sortOrder,
       })
       .returning();
@@ -79,7 +82,7 @@ async function seed() {
       color:     p.color,
       start:     p.start,
       duration:  p.duration,
-      status:    "not_started" as const,
+      status:    "not_started" as string,
       roll:      p.roll,
       sortOrder: p.sortOrder,
     }));

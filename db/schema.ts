@@ -37,11 +37,18 @@ export const tracks = pgTable("tracks", {
   mainRunnerId:    integer("main_runner_id").references(() => members.id, {
     onDelete: "set null",
   }),
-  // Hopper assignment: which member + which B-roll phase name they assist on
+  // Hopper 1 assignment: which member + which B-roll phase name they assist on
   hopperMemberId:  integer("hopper_member_id").references(() => members.id, {
     onDelete: "set null",
   }),
   hopperPhaseName: text("hopper_phase_name"), // e.g. "Land Value"
+  // Hopper 2 assignment
+  hopper2MemberId: integer("hopper2_member_id").references(() => members.id, {
+    onDelete: "set null",
+  }),
+  hopper2PhaseName: text("hopper2_phase_name"),
+  // Per-track timeline start date (shifting phases when changed)
+  timelineStart:   text("timeline_start"),
   sortOrder:       integer("sort_order").notNull().default(0),
   createdAt:       timestamp("created_at").defaultNow().notNull(),
 });
