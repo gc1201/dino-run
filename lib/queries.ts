@@ -139,6 +139,19 @@ function addWeekdays(dateStr: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Subtract weekdays from a date string. */
+function subtractWeekdays(dateStr: string, n: number): string {
+  if (n <= 0) return dateStr;
+  const d = new Date(dateStr + "T12:00:00");
+  let count = 0;
+  while (count < n) {
+    d.setDate(d.getDate() - 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
 /** Compute end date: start + (duration - 1) weekdays. */
 function phaseEnd(start: string, duration: number): string {
   if (duration <= 1) return start;
@@ -182,36 +195,53 @@ export async function setPhaseByDueDate(
   phaseId: number,
   dueDate: string
 ): Promise<DueDateResult> {
-  // Get this phase and all sibling phases in the same track
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
   if (!phase) throw new Error("Phase not found");
 
+  const minDur = getMinDuration(phase.name);
+
+  // B-roll phases are independent — no chaining, just back-compute start from due date
+  if (phase.roll === "B") {
+    const span = countWeekdays(
+      subtractWeekdays(dueDate, Math.max(minDur, 1) - 1),
+      dueDate
+    );
+    const duration = Math.max(minDur, span);
+    const start = subtractWeekdays(dueDate, duration - 1);
+    const actualEnd = phaseEnd(start, duration);
+
+    const [updated] = await db
+      .update(phases)
+      .set({ start, duration, updatedAt: new Date() })
+      .where(eq(phases.id, phaseId))
+      .returning();
+
+    return { updated, adjusted: false, actualDueDate: actualEnd, chainedCount: 0 };
+  }
+
+  // A-roll phases: auto-chain from previous phase
   const siblings = await db
     .select()
     .from(phases)
     .where(eq(phases.trackId, phase.trackId))
     .orderBy(asc(phases.sortOrder));
 
-  // Find previous phase in same roll
-  const sameRoll = siblings.filter((p) => p.roll === phase.roll);
-  const idx = sameRoll.findIndex((p) => p.id === phase.id);
-  const prev = idx > 0 ? sameRoll[idx - 1] : null;
+  const aRoll = siblings.filter((p) => p.roll === "A");
+  const idx = aRoll.findIndex((p) => p.id === phase.id);
+  const prev = idx > 0 ? aRoll[idx - 1] : null;
 
-  // Compute start: day after previous phase ends, or keep current if first
+  // start = day after previous A-roll phase ends
   let start: string;
   if (prev) {
     const prevEnd = phaseEnd(prev.start, prev.duration);
     start = addWeekdays(prevEnd, 1);
   } else {
-    start = phase.start; // first phase in roll — keep existing start
+    start = phase.start; // first A-roll phase — keep existing start
   }
 
-  // Compute duration, enforce minimum
-  const minDur = getMinDuration(phase.name);
   const span = countWeekdays(start, dueDate);
   const duration = Math.max(minDur, span);
   const adjusted = span < minDur;
-
   const actualEnd = phaseEnd(start, duration);
 
   const [updated] = await db
@@ -220,13 +250,12 @@ export async function setPhaseByDueDate(
     .where(eq(phases.id, phaseId))
     .returning();
 
-  // Auto-chain subsequent phases: preserve their existing durations, shift starts
-  const subsequent = sameRoll.slice(idx + 1);
+  // Auto-chain subsequent A-roll phases
+  const subsequent = aRoll.slice(idx + 1);
   let chainStart = addWeekdays(actualEnd, 1);
   let chainedCount = 0;
 
   for (const next of subsequent) {
-    // Keep the phase's existing duration (or clamp to min if somehow below)
     const nextDur = Math.max(getMinDuration(next.name), next.duration);
     const needsUpdate = next.start !== chainStart || next.duration !== nextDur;
 
@@ -242,59 +271,48 @@ export async function setPhaseByDueDate(
     chainStart = addWeekdays(nextEnd, 1);
   }
 
-  return {
-    updated,
-    adjusted,
-    actualDueDate: actualEnd,
-    chainedCount,
-  };
+  return { updated, adjusted, actualDueDate: actualEnd, chainedCount };
 }
 
 /**
- * Rechain all phases in a track for a given roll (or both rolls).
+ * Rechain A-roll phases in a track.
  *
- * Walks phases in sortOrder. Each phase's start = next weekday after
+ * Walks A-roll phases in sortOrder. Each phase's start = next weekday after
  * previous phase's end. Duration is preserved (clamped to min).
- * The first phase in each roll keeps its existing start.
+ * The first A-roll phase keeps its existing start.
+ *
+ * B-roll phases are independent and never chained.
  *
  * Returns how many phases were updated.
  */
-export async function rechainTrackPhases(
-  trackId: number,
-  roll?: "A" | "B"
-): Promise<number> {
+export async function rechainTrackPhases(trackId: number): Promise<number> {
   const allPhases = await db
     .select()
     .from(phases)
     .where(eq(phases.trackId, trackId))
     .orderBy(asc(phases.sortOrder));
 
-  const rolls = roll ? [roll] : ["A", "B"] as const;
+  const aRoll = allPhases.filter((p) => p.roll === "A");
+  if (aRoll.length === 0) return 0;
+
   let totalUpdated = 0;
+  let chainStart = aRoll[0].start;
 
-  for (const r of rolls) {
-    const rollPhases = allPhases.filter((p) => p.roll === r);
-    if (rollPhases.length === 0) continue;
+  for (let i = 0; i < aRoll.length; i++) {
+    const p = aRoll[i];
+    const dur = Math.max(getMinDuration(p.name), p.duration);
+    const needsUpdate = p.start !== chainStart || p.duration !== dur;
 
-    let chainStart = rollPhases[0].start; // first phase keeps its start
-
-    for (let i = 0; i < rollPhases.length; i++) {
-      const p = rollPhases[i];
-      const dur = Math.max(getMinDuration(p.name), p.duration);
-      const newStart = i === 0 ? chainStart : chainStart;
-      const needsUpdate = p.start !== newStart || p.duration !== dur;
-
-      if (needsUpdate) {
-        await db
-          .update(phases)
-          .set({ start: newStart, duration: dur, updatedAt: new Date() })
-          .where(eq(phases.id, p.id));
-        totalUpdated++;
-      }
-
-      const end = phaseEnd(newStart, dur);
-      chainStart = addWeekdays(end, 1);
+    if (needsUpdate) {
+      await db
+        .update(phases)
+        .set({ start: chainStart, duration: dur, updatedAt: new Date() })
+        .where(eq(phases.id, p.id));
+      totalUpdated++;
     }
+
+    const end = phaseEnd(chainStart, dur);
+    chainStart = addWeekdays(end, 1);
   }
 
   return totalUpdated;
