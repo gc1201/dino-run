@@ -28,7 +28,9 @@ interface Props {
 /** Add weekdays to a date string (YYYY-MM-DD). */
 function addWeekdays(dateStr: string, n: number): string {
   if (n <= 0) return dateStr;
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
   const d = new Date(dateStr + "T12:00:00");
+  if (isNaN(d.getTime())) return dateStr;
   let count = 0;
   while (count < n) {
     d.setDate(d.getDate() + 1);
@@ -41,7 +43,9 @@ function addWeekdays(dateStr: string, n: number): string {
 /** Subtract weekdays from a date string (YYYY-MM-DD). */
 function subtractWeekdays(dateStr: string, n: number): string {
   if (n <= 0) return dateStr;
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
   const d = new Date(dateStr + "T12:00:00");
+  if (isNaN(d.getTime())) return dateStr;
   let count = 0;
   while (count < n) {
     d.setDate(d.getDate() - 1);
@@ -53,6 +57,7 @@ function subtractWeekdays(dateStr: string, n: number): string {
 
 /** Compute due date from start + duration (weekdays). */
 function computeDueDate(start: string, duration: number): string {
+  if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) return start || "";
   if (duration <= 1) return start;
   return addWeekdays(start, duration - 1);
 }
@@ -130,6 +135,7 @@ export function EditPanel({ state }: Props) {
     }
   }
 
+  const runnerMembers = state.members.filter((m) => m.role === "runner");
   const hopperMembers = state.members.filter((m) => m.role === "hopper");
 
   return (
@@ -178,6 +184,25 @@ export function EditPanel({ state }: Props) {
                 />
               </div>
 
+              {/* Runner assignment */}
+              <div style={styles.hopperSection}>
+                <span style={styles.hopperLabel}>Main Runner</span>
+                <select
+                  style={styles.hopperSelect}
+                  value={track.mainRunnerId ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    saveTrack(track.id, { mainRunnerId: val });
+                  }}
+                >
+                  <option value="">None</option>
+                  {runnerMembers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Hopper assignments */}
               <div style={styles.hopperSection}>
                 <span style={styles.hopperLabel}>Hopper 1</span>
                 <div style={styles.hopperRow}>

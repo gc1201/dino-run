@@ -97,13 +97,13 @@ export async function updateTrack(id: number, data: TrackUpdate) {
 }
 
 const DEFAULT_PHASES = [
-  { name: "Parcel",      color: "#3B82F6", offsetDays: 0,  duration: 5, roll: "A", sortOrder: 0 },
+  { name: "Parcel",      color: "#3B82F6", offsetDays: 0,  duration: 9, roll: "A", sortOrder: 0 },
   { name: "Land Value",  color: "#10B981", offsetDays: 0,  duration: 2, roll: "B", sortOrder: 1 },
-  { name: "Assumptions", color: "#F59E0B", offsetDays: 5,  duration: 4, roll: "A", sortOrder: 2 },
-  { name: "Policy",      color: "#EC4899", offsetDays: 10, duration: 5, roll: "A", sortOrder: 3 },
-  { name: "Fees",        color: "#EF4444", offsetDays: 10, duration: 5, roll: "B", sortOrder: 4 },
-  { name: "Integration", color: "#06B6D4", offsetDays: 15, duration: 4, roll: "A", sortOrder: 5 },
-  { name: "Rollout",     color: "#F97316", offsetDays: 20, duration: 4, roll: "A", sortOrder: 6 },
+  { name: "Assumptions", color: "#F59E0B", offsetDays: 9,  duration: 4, roll: "A", sortOrder: 2 },
+  { name: "Policy",      color: "#EC4899", offsetDays: 13, duration: 5, roll: "A", sortOrder: 3 },
+  { name: "Fees",        color: "#EF4444", offsetDays: 13, duration: 5, roll: "B", sortOrder: 4 },
+  { name: "Integration", color: "#06B6D4", offsetDays: 18, duration: 4, roll: "A", sortOrder: 5 },
+  { name: "Rollout",     color: "#F97316", offsetDays: 22, duration: 4, roll: "A", sortOrder: 6 },
 ];
 
 /** Add weekdays to a date string. */

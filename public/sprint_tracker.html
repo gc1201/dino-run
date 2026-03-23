@@ -115,9 +115,16 @@
     /* ── Track lane ── */
     .lane-wrapper { margin-bottom: 12px; position: relative; }
 
+    .lane-row {
+      margin-bottom: 6px;
+    }
+
     .lane-body {
       position: relative;
       /* height set dynamically by JS to fill viewport */
+      background: rgba(255,255,255,0.02);
+      border: 1px solid #252525;
+      border-radius: 4px;
     }
 
     /* Phase strip — pixel style */
@@ -416,13 +423,13 @@ let S = {
       mainRunnerId: 1,
       hoppers: [{ memberId: 5, phaseId: 12 }, { memberId: 6, phaseId: 15 }], // Haley on Land Value, Sarah on Fees
       phases: [
-        { id: 11, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 11, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 9, status: "not_started", roll: "A" },
         { id: 12, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
-        { id: 13, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
-        { id: 14, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
-        { id: 15, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
-        { id: 16, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
-        { id: 17, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+        { id: 13, name: "Assumptions", color: "#F59E0B", start: "2026-03-23", duration: 4, status: "not_started", roll: "A" },
+        { id: 14, name: "Policy",      color: "#EC4899", start: "2026-03-27", duration: 5, status: "not_started", roll: "A" },
+        { id: 15, name: "Fees",        color: "#EF4444", start: "2026-03-27", duration: 5, status: "not_started", roll: "B" },
+        { id: 16, name: "Integration", color: "#06B6D4", start: "2026-04-03", duration: 4, status: "not_started", roll: "A" },
+        { id: 17, name: "Rollout",     color: "#F97316", start: "2026-04-09", duration: 4, status: "not_started", roll: "A" },
       ]
     },
     {
@@ -430,13 +437,13 @@ let S = {
       mainRunnerId: 2,
       hoppers: [{ memberId: 6, phaseId: 22 }], // Sarah on Land Value
       phases: [
-        { id: 21, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 21, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 9, status: "not_started", roll: "A" },
         { id: 22, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
-        { id: 23, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
-        { id: 24, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
-        { id: 25, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
-        { id: 26, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
-        { id: 27, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+        { id: 23, name: "Assumptions", color: "#F59E0B", start: "2026-03-23", duration: 4, status: "not_started", roll: "A" },
+        { id: 24, name: "Policy",      color: "#EC4899", start: "2026-03-27", duration: 5, status: "not_started", roll: "A" },
+        { id: 25, name: "Fees",        color: "#EF4444", start: "2026-03-27", duration: 5, status: "not_started", roll: "B" },
+        { id: 26, name: "Integration", color: "#06B6D4", start: "2026-04-03", duration: 4, status: "not_started", roll: "A" },
+        { id: 27, name: "Rollout",     color: "#F97316", start: "2026-04-09", duration: 4, status: "not_started", roll: "A" },
       ]
     },
     {
@@ -444,13 +451,13 @@ let S = {
       mainRunnerId: 3,
       hoppers: [{ memberId: 5, phaseId: 35 }], // Haley on Fees
       phases: [
-        { id: 31, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "not_started", roll: "A" },
+        { id: 31, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 9, status: "not_started", roll: "A" },
         { id: 32, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
-        { id: 33, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
-        { id: 34, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
-        { id: 35, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
-        { id: 36, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
-        { id: 37, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+        { id: 33, name: "Assumptions", color: "#F59E0B", start: "2026-03-23", duration: 4, status: "not_started", roll: "A" },
+        { id: 34, name: "Policy",      color: "#EC4899", start: "2026-03-27", duration: 5, status: "not_started", roll: "A" },
+        { id: 35, name: "Fees",        color: "#EF4444", start: "2026-03-27", duration: 5, status: "not_started", roll: "B" },
+        { id: 36, name: "Integration", color: "#06B6D4", start: "2026-04-03", duration: 4, status: "not_started", roll: "A" },
+        { id: 37, name: "Rollout",     color: "#F97316", start: "2026-04-09", duration: 4, status: "not_started", roll: "A" },
       ]
     },
     {
@@ -460,11 +467,11 @@ let S = {
       phases: [
         { id: 51, name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, status: "in_progress", roll: "A" },
         { id: 52, name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, status: "not_started", roll: "B" },
-        { id: 53, name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, status: "not_started", roll: "A" },
-        { id: 54, name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, status: "not_started", roll: "A" },
-        { id: 55, name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, status: "not_started", roll: "B" },
-        { id: 56, name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, status: "not_started", roll: "A" },
-        { id: 57, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
+        { id: 53, name: "Assumptions", color: "#F59E0B", start: "2026-03-23", duration: 4, status: "not_started", roll: "A" },
+        { id: 54, name: "Policy",      color: "#EC4899", start: "2026-03-27", duration: 5, status: "not_started", roll: "A" },
+        { id: 55, name: "Fees",        color: "#EF4444", start: "2026-03-27", duration: 5, status: "not_started", roll: "B" },
+        { id: 56, name: "Integration", color: "#06B6D4", start: "2026-04-03", duration: 4, status: "not_started", roll: "A" },
+        { id: 57, name: "Rollout",     color: "#F97316", start: "2026-04-09", duration: 4, status: "not_started", roll: "A" },
       ]
     },
   ],
@@ -526,6 +533,9 @@ function computeHopperPct(track) {
   if (!track.hoppers || track.hoppers.length === 0) return null;
   const bPhases = track.phases.filter(p => p.roll === "B");
   if (bPhases.length === 0) return null;
+  // Hide hopper if all B-roll not started or all done
+  if (bPhases.every(p => p.status === "not_started")) return null;
+  if (bPhases.every(p => p.status === "done")) return null;
   return phasePct(bPhases);
 }
 
@@ -626,6 +636,10 @@ function renderTrack() {
     const bodyCol = mkEl("div", "track-body-col");
     const laneBody = mkEl("div", "lane-body");
     laneBody.id = `tbar-${track.id}`;
+    // Color accent on left border matching runner color
+    if (runner) {
+      laneBody.style.borderLeft = `3px solid ${runner.color}44`;
+    }
 
     const aPhases = track.phases.filter(p => p.roll !== "B");
     const bPhases = track.phases.filter(p => p.roll === "B");
@@ -692,13 +706,14 @@ function renderTrack() {
 
   // ── Dynamic lane sizing: fill available viewport height ──
   const STRIP_ZONE = 50; // B-strip(20px) + divider + A-strip(20px) + margin — at bottom
+  const LANE_GAP = 8;    // gap between track bundles
   const MIN_LANE_H = 140;
   const hdrH = 50;   // header bar
   const rulerH = 32; // date ruler
   const legendH = 50; // legend row
   const padH = 104;  // main padding top+bottom
   const trackCount = S.tracks.length || 1;
-  const available = window.innerHeight - hdrH - rulerH - legendH - padH;
+  const available = window.innerHeight - hdrH - rulerH - legendH - padH - (LANE_GAP * (trackCount - 1));
   const laneH = Math.max(MIN_LANE_H, Math.floor(available / trackCount));
 
   // Running area is the top portion (above the strip zone at the bottom)
@@ -1004,7 +1019,15 @@ function animLoop(ts) {
     const runner = S.members.find(m => m.id === track.mainRunnerId);
     const runnerColor = runner ? runner.color : "#555";
     const runnerLabel = runner ? runner.name : "?";
-    const hopperMembers = (track.hoppers || []).map(h => S.members.find(m => m.id === h.memberId)).filter(Boolean);
+
+    // Only show hoppers whose assigned phase is in_progress
+    const activeHoppers = (track.hoppers || []).map(h => {
+      const member = S.members.find(m => m.id === h.memberId);
+      const phase = track.phases.find(p => p.id === h.phaseId);
+      if (!member || !phase || phase.status !== "in_progress") return null;
+      return { member, phase };
+    }).filter(Boolean);
+
     const targetH = computeHopperPct(track);
 
     if (gameState === "waiting") {
@@ -1012,12 +1035,10 @@ function animLoop(ts) {
       const sx = laneLeft + 20;
       drawDino(sx, gyA, runnerColor, idleFrame);
       drawLabel(sx, gyA - DINO[0].length * PX - 5, runnerLabel, runnerColor);
-      hopperMembers.forEach((hm, i) => {
-        if (hm && targetH !== null) {
-          const yOff = i * 14;
-          drawPtero(sx + i * 30, gyB - yOff, hm.color, idleFrame + 1 + i);
-          drawLabel(sx + i * 30, gyB - PTERO[0].length * PX - 12 - yOff, hm.name, hm.color);
-        }
+      activeHoppers.forEach((h, i) => {
+        const yOff = i * 14;
+        drawPtero(sx + i * 30, gyB - yOff, h.member.color, idleFrame + 1 + i);
+        drawLabel(sx + i * 30, gyB - PTERO[0].length * PX - 12 - yOff, h.member.name, h.member.color);
       });
     } else {
       // ── RACING: lerp toward real targets ──
@@ -1030,13 +1051,13 @@ function animLoop(ts) {
       drawLabel(rx, gyA - DINO[0].length * PX - 5,
         `${runnerLabel} ${Math.round(track._dpr)}%`, runnerColor);
 
-      hopperMembers.forEach((hm, i) => {
-        if (hm && targetH !== null) {
+      activeHoppers.forEach((h, i) => {
+        if (targetH !== null) {
           const hx = laneLeft + (track._dph / 100) * laneWidth;
           const yOff = i * 14;
-          drawPtero(hx + i * 30, gyB - yOff, hm.color, _animFrame + 1 + i);
+          drawPtero(hx + i * 30, gyB - yOff, h.member.color, _animFrame + 1 + i);
           drawLabel(hx + i * 30, gyB - PTERO[0].length * PX - 12 - yOff,
-            `${hm.name} ${Math.round(track._dph)}%`, hm.color);
+            `${h.member.name} ${Math.round(track._dph)}%`, h.member.color);
         }
       });
     }
@@ -1408,13 +1429,13 @@ function applyPreset(type) {
     if (startEl) { startEl.classList.remove("date-err"); startEl.value = startStr; }
     // 5-week schedule: [name, color, weekdayOffset, duration, roll]
     const defs = [
-      ["Parcel",      "#3B82F6",  0,  5, "A"],
+      ["Parcel",      "#3B82F6",  0,  9, "A"],
       ["Land Value",  "#10B981",  0,  2, "B"],
-      ["Assumptions", "#F59E0B",  5,  4, "A"],
-      ["Policy",      "#EC4899", 10,  5, "A"],
-      ["Fees",        "#EF4444", 10,  5, "B"],
-      ["Integration", "#06B6D4", 15,  4, "A"],
-      ["Rollout",     "#F97316", 20,  4, "A"],
+      ["Assumptions", "#F59E0B",  9,  4, "A"],
+      ["Policy",      "#EC4899", 13,  5, "A"],
+      ["Fees",        "#EF4444", 13,  5, "B"],
+      ["Integration", "#06B6D4", 18,  4, "A"],
+      ["Rollout",     "#F97316", 22,  4, "A"],
     ];
     S.tracks.forEach(tr => {
       tr.phases = defs.map(([name, color, wd, duration, roll]) => ({

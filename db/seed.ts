@@ -22,13 +22,13 @@ const DEFAULT_MEMBERS = [
 ] as const;
 
 const DEFAULT_PHASES = [
-  { name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 5, roll: "A", sortOrder: 0 },
-  { name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2, roll: "B", sortOrder: 1 },
-  { name: "Assumptions", color: "#F59E0B", start: "2026-03-17", duration: 4, roll: "A", sortOrder: 2 },
-  { name: "Policy",      color: "#EC4899", start: "2026-03-24", duration: 5, roll: "A", sortOrder: 3 },
-  { name: "Fees",        color: "#EF4444", start: "2026-03-24", duration: 5, roll: "B", sortOrder: 4 },
-  { name: "Integration", color: "#06B6D4", start: "2026-03-31", duration: 4, roll: "A", sortOrder: 5 },
-  { name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, roll: "A", sortOrder: 6 },
+  { name: "Parcel",      color: "#3B82F6", start: "2026-03-10", duration: 9,  roll: "A", sortOrder: 0 },
+  { name: "Land Value",  color: "#10B981", start: "2026-03-10", duration: 2,  roll: "B", sortOrder: 1 },
+  { name: "Assumptions", color: "#F59E0B", start: "2026-03-23", duration: 4,  roll: "A", sortOrder: 2 },
+  { name: "Policy",      color: "#EC4899", start: "2026-03-27", duration: 5,  roll: "A", sortOrder: 3 },
+  { name: "Fees",        color: "#EF4444", start: "2026-03-27", duration: 5,  roll: "B", sortOrder: 4 },
+  { name: "Integration", color: "#06B6D4", start: "2026-04-03", duration: 4,  roll: "A", sortOrder: 5 },
+  { name: "Rollout",     color: "#F97316", start: "2026-04-09", duration: 4,  roll: "A", sortOrder: 6 },
 ] as const;
 
 const DEFAULT_TRACKS = [
