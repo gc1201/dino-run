@@ -66,13 +66,15 @@ export function EditPanel({ state }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState<number | null>(null);
   const [error, setError]   = useState<string | null>(null);
+  const [info, setInfo]     = useState<string | null>(null);
 
   async function savePhase(
     phaseId: number,
-    data: { start?: string; duration?: number; status?: string; roll?: string }
+    data: Record<string, unknown>
   ) {
     setSaving(phaseId);
     setError(null);
+    setInfo(null);
     try {
       const res = await fetch(`/api/phases/${phaseId}`, {
         method: "PATCH",
@@ -80,6 +82,15 @@ export function EditPanel({ state }: Props) {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(await res.text());
+
+      // Check for auto-chain feedback
+      const result = await res.json();
+      if (result.adjusted) {
+        setInfo(`Due date adjusted to ${result.actualDueDate} (min duration)`);
+      } else if (result.chainedCount > 0) {
+        setInfo(`${result.chainedCount} subsequent phase(s) shifted`);
+      }
+
       router.refresh();
     } catch (e) {
       setError(String(e));
@@ -146,6 +157,11 @@ export function EditPanel({ state }: Props) {
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
+      {info && (
+        <div style={styles.info} onClick={() => setInfo(null)}>
+          {info}
+        </div>
+      )}
 
       <div style={{ flex: 1, overflowY: "auto" }}>
         {state.tracks.map((track) => {
@@ -333,32 +349,37 @@ function TimelineStartInput({
   );
 }
 
-// ── Phase row — edit due date instead of start date ──────────────────────────
+// ── Phase row — due date as primary input, auto-chains from previous phase ──
 
 interface PhaseRowProps {
   phase: AnimationState["tracks"][0]["phases"][0];
   isSaving: boolean;
-  onSave: (data: { start?: string; duration?: number; status?: string; roll?: string }) => void;
+  onSave: (data: Record<string, unknown>) => void;
 }
 
 function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
   const currentDueDate = computeDueDate(phase.start, phase.duration);
   const [dueDate, setDueDate] = useState(currentDueDate);
-  const [duration, setDuration] = useState(phase.duration);
-  const [status, setStatus]     = useState<Status>(phase.status as Status);
-  const [roll, setRoll]         = useState(phase.roll);
+  const [status, setStatus]   = useState<Status>(phase.status as Status);
+  const [roll, setRoll]       = useState(phase.roll);
 
-  // Compute what start would be from the entered due date and duration
-  const computedStart = subtractWeekdays(dueDate, Math.max(1, duration) - 1);
-
-  const dirty =
-    computedStart !== phase.start ||
-    duration !== phase.duration ||
-    status !== phase.status ||
-    roll !== phase.roll;
+  const dueDateDirty = dueDate !== currentDueDate;
+  const statusDirty = status !== phase.status;
+  const rollDirty = roll !== phase.roll;
+  const dirty = dueDateDirty || statusDirty || rollDirty;
 
   function toggleRoll() {
     setRoll(roll === "A" ? "B" : "A");
+  }
+
+  function handleSave() {
+    if (dueDateDirty) {
+      // Use auto-chain mode: server computes start from previous phase
+      onSave({ dueDate, status, roll });
+    } else {
+      // Only status/roll changed — direct update
+      onSave({ status, roll });
+    }
   }
 
   return (
@@ -390,15 +411,9 @@ function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
           placeholder="Due YYYY-MM-DD"
           onChange={(e) => setDueDate(e.target.value)}
         />
-        <input
-          style={styles.numInput}
-          type="number"
-          min={1}
-          max={365}
-          value={duration}
-          title="weekdays"
-          onChange={(e) => setDuration(Number(e.target.value))}
-        />
+        <span style={styles.durationDisplay} title="duration (weekdays)">
+          {phase.duration}d
+        </span>
         <select
           style={styles.select}
           value={status}
@@ -412,11 +427,16 @@ function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
         </select>
       </div>
 
+      {/* Show computed start date */}
+      <div style={styles.startInfo}>
+        starts {phase.start}
+      </div>
+
       {dirty && (
         <button
           style={{ ...styles.saveBtn, opacity: isSaving ? 0.5 : 1 }}
           disabled={isSaving}
-          onClick={() => onSave({ start: computedStart, duration, status, roll })}
+          onClick={handleSave}
         >
           {isSaving ? "…" : "SAVE"}
         </button>
@@ -462,6 +482,17 @@ const styles = {
     borderRadius: 4,
     fontSize: 11,
     color: "#ef4444",
+  },
+  info: {
+    margin: "8px 12px",
+    padding: "8px 10px",
+    background: "rgba(59,130,246,.12)",
+    border: "1px solid #3b82f6",
+    borderRadius: 4,
+    fontSize: 10,
+    color: "#60a5fa",
+    cursor: "pointer",
+    fontFamily: "'Courier New', monospace",
   },
   trackBlock: {
     borderBottom: "1px solid #1a1a1a",
@@ -588,6 +619,20 @@ const styles = {
     outline: "none",
     textAlign: "center" as const,
     width: "100%",
+  },
+  durationDisplay: {
+    gridColumn: "2 / 3",
+    color: "#555",
+    padding: "5px 4px",
+    fontSize: 11,
+    fontFamily: "'Courier New', monospace",
+    textAlign: "center" as const,
+  },
+  startInfo: {
+    fontSize: 9,
+    color: "#444",
+    fontFamily: "'Courier New', monospace",
+    letterSpacing: "0.04em",
   },
   select: {
     gridColumn: "1 / 3",

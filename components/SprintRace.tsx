@@ -1,26 +1,16 @@
 "use client";
 
 /**
- * SprintRace — embeds the canvas animation inside an iframe using srcdoc.
+ * SprintRace — embeds the canvas animation inside an iframe.
  *
- * Why iframe + srcdoc?
- *   The animation is a self-contained HTML/JS/Canvas app. Embedding it in an
- *   iframe gives it a clean global scope (no Next.js React conflicts) and lets
- *   the canvas fill the whole viewport inside the frame.
+ * Two-phase approach:
+ *   1. INITIAL LOAD: fetch HTML template, inject state, set srcdoc (once)
+ *   2. UPDATES: push new state into the iframe via postMessage (no reload)
  *
- * How state flows in:
- *   1. Server Component fetches data from Supabase via Drizzle
- *   2. Passes serialized state to this client component as a prop
- *   3. We fetch the raw HTML template from /sprint_tracker.html
- *   4. Inject window.__SPRINT_STATE__ before </head>
- *   5. Set the iframe srcdoc — animation boots with live DB data
- *
- * On re-render (after an edit + router.refresh()):
- *   The state prop changes → JSON.stringify dependency → new srcdoc → iframe
- *   seamlessly reloads with fresh data, race resets to start line.
+ * This preserves animation positions — dinos keep running instead of resetting.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { AnimationState } from "@/lib/state";
 
 interface Props {
@@ -28,11 +18,23 @@ interface Props {
 }
 
 export function SprintRace({ state }: Props) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [srcdoc, setSrcdoc] = useState<string>("");
+  const loadedStateRef = useRef<string>(""); // tracks what state the iframe was initialized with
+  const iframeReadyRef = useRef(false);
 
   const stateJson = JSON.stringify(state);
 
+  // Mark iframe as ready when it loads
+  const handleIframeLoad = useCallback(() => {
+    iframeReadyRef.current = true;
+  }, []);
+
+  // Phase 1: Load HTML template and inject initial state (once)
   useEffect(() => {
+    if (loadedStateRef.current) return; // already loaded
+    loadedStateRef.current = stateJson;
+
     fetch("/sprint_tracker.html")
       .then((r) => r.text())
       .then((raw) => {
@@ -40,9 +42,23 @@ export function SprintRace({ state }: Props) {
         setSrcdoc(raw.replace("</head>", injection + "\n</head>"));
       })
       .catch(console.error);
-    // stateJson as dep — stable string comparison, re-fetches only on real data changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateJson]);
+  }, []);
+
+  // Phase 2: Push incremental updates via postMessage
+  useEffect(() => {
+    // Skip if this is the same state the iframe was initialized with
+    if (stateJson === loadedStateRef.current) return;
+    if (!iframeReadyRef.current) return;
+
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+
+    iframe.contentWindow.postMessage(
+      { type: "stateUpdate", state },
+      "*"
+    );
+  }, [stateJson, state]);
 
   if (!srcdoc) {
     return (
@@ -56,10 +72,11 @@ export function SprintRace({ state }: Props) {
 
   return (
     <iframe
+      ref={iframeRef}
       srcDoc={srcdoc}
+      onLoad={handleIframeLoad}
       title="Sprint Race Animation"
       style={iframeStyle}
-      // sandbox allows scripts but restricts navigation + popups
       sandbox="allow-scripts allow-same-origin"
     />
   );

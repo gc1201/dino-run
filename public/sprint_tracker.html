@@ -1570,6 +1570,39 @@ document.getElementById("proj-disp").textContent = S.projectName;
 // Start everyone at the start line — animation values always reset to 0 on load
 S.tracks.forEach(t => { t._dpr = 0; t._dph = 0; });
 renderTrack();
+
+// ═══════════════════════════════════════════
+// INCREMENTAL UPDATE VIA postMessage
+// ═══════════════════════════════════════════
+// When embedded in Next.js, the parent sends { type: 'stateUpdate', state: {...} }
+// instead of rebuilding the entire iframe. This preserves animation positions.
+window.addEventListener('message', function(evt) {
+  if (!evt.data || evt.data.type !== 'stateUpdate') return;
+  const next = evt.data.state;
+  if (!next || !next.tracks) return;
+
+  // Merge new data while preserving animation lerp positions (_dpr, _dph)
+  S.projectName = next.projectName ?? S.projectName;
+  S.members = next.members ?? S.members;
+
+  // Build a map of current animation positions
+  const posMap = {};
+  S.tracks.forEach(t => { posMap[t.id] = { _dpr: t._dpr || 0, _dph: t._dph || 0 }; });
+
+  // Replace tracks with new data, restore animation positions
+  S.tracks = next.tracks.map(t => {
+    const prev = posMap[t.id];
+    return { ...t, _dpr: prev ? prev._dpr : 0, _dph: prev ? prev._dph : 0 };
+  });
+
+  // Update display
+  document.getElementById("proj-disp").textContent = S.projectName;
+  invalidateRange();
+  renderTrack();
+
+  // Auto-start race if still waiting
+  if (gameState === "waiting") startRace();
+});
 </script>
 </body>
 </html>

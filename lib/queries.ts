@@ -106,6 +106,26 @@ const DEFAULT_PHASES = [
   { name: "Rollout",     color: "#F97316", offsetDays: 22, duration: 4, roll: "A", sortOrder: 6 },
 ];
 
+// ── Minimum durations per phase name ─────────────────────────────────────────
+
+const MIN_DURATIONS: Record<string, number> = {
+  Parcel: 9,
+  "Land Value": 2,
+  Assumptions: 4,
+  Policy: 5,
+  Fees: 5,
+  Integration: 4,
+  Rollout: 4,
+};
+
+const DEFAULT_MIN_DURATION = 3;
+
+function getMinDuration(phaseName: string): number {
+  return MIN_DURATIONS[phaseName] ?? DEFAULT_MIN_DURATION;
+}
+
+// ── Date utilities ───────────────────────────────────────────────────────────
+
 /** Add weekdays to a date string. */
 function addWeekdays(dateStr: string, n: number): string {
   if (n <= 0) return dateStr;
@@ -117,6 +137,167 @@ function addWeekdays(dateStr: string, n: number): string {
     if (dow !== 0 && dow !== 6) count++;
   }
   return d.toISOString().slice(0, 10);
+}
+
+/** Compute end date: start + (duration - 1) weekdays. */
+function phaseEnd(start: string, duration: number): string {
+  if (duration <= 1) return start;
+  return addWeekdays(start, duration - 1);
+}
+
+/** Count weekdays between two dates (inclusive of both). */
+function countWeekdays(startStr: string, endStr: string): number {
+  const s = new Date(startStr + "T12:00:00");
+  const e = new Date(endStr + "T12:00:00");
+  if (e < s) return 0;
+  let count = 0;
+  const d = new Date(s);
+  while (d <= e) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return Math.max(1, count);
+}
+
+/**
+ * Set a phase's due date with auto-chaining.
+ *
+ * Logic:
+ *   1. Find the previous phase in the same roll (same track, lower sortOrder)
+ *   2. start = next weekday after previous phase ends (or keep current start if first)
+ *   3. duration = weekdays(start, dueDate), clamped to >= minDuration
+ *   4. If dueDate is too close, extend it to start + minDuration
+ *
+ * Returns the updated phase.
+ */
+export interface DueDateResult {
+  updated: typeof phases.$inferSelect;
+  adjusted: boolean;        // true if due date was clamped to min duration
+  actualDueDate: string;    // the real end date after adjustment
+  chainedCount: number;     // number of subsequent phases shifted
+}
+
+export async function setPhaseByDueDate(
+  phaseId: number,
+  dueDate: string
+): Promise<DueDateResult> {
+  // Get this phase and all sibling phases in the same track
+  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
+  if (!phase) throw new Error("Phase not found");
+
+  const siblings = await db
+    .select()
+    .from(phases)
+    .where(eq(phases.trackId, phase.trackId))
+    .orderBy(asc(phases.sortOrder));
+
+  // Find previous phase in same roll
+  const sameRoll = siblings.filter((p) => p.roll === phase.roll);
+  const idx = sameRoll.findIndex((p) => p.id === phase.id);
+  const prev = idx > 0 ? sameRoll[idx - 1] : null;
+
+  // Compute start: day after previous phase ends, or keep current if first
+  let start: string;
+  if (prev) {
+    const prevEnd = phaseEnd(prev.start, prev.duration);
+    start = addWeekdays(prevEnd, 1);
+  } else {
+    start = phase.start; // first phase in roll — keep existing start
+  }
+
+  // Compute duration, enforce minimum
+  const minDur = getMinDuration(phase.name);
+  const span = countWeekdays(start, dueDate);
+  const duration = Math.max(minDur, span);
+  const adjusted = span < minDur;
+
+  const actualEnd = phaseEnd(start, duration);
+
+  const [updated] = await db
+    .update(phases)
+    .set({ start, duration, updatedAt: new Date() })
+    .where(eq(phases.id, phaseId))
+    .returning();
+
+  // Auto-chain subsequent phases: preserve their existing durations, shift starts
+  const subsequent = sameRoll.slice(idx + 1);
+  let chainStart = addWeekdays(actualEnd, 1);
+  let chainedCount = 0;
+
+  for (const next of subsequent) {
+    // Keep the phase's existing duration (or clamp to min if somehow below)
+    const nextDur = Math.max(getMinDuration(next.name), next.duration);
+    const needsUpdate = next.start !== chainStart || next.duration !== nextDur;
+
+    if (needsUpdate) {
+      await db
+        .update(phases)
+        .set({ start: chainStart, duration: nextDur, updatedAt: new Date() })
+        .where(eq(phases.id, next.id));
+      chainedCount++;
+    }
+
+    const nextEnd = phaseEnd(chainStart, nextDur);
+    chainStart = addWeekdays(nextEnd, 1);
+  }
+
+  return {
+    updated,
+    adjusted,
+    actualDueDate: actualEnd,
+    chainedCount,
+  };
+}
+
+/**
+ * Rechain all phases in a track for a given roll (or both rolls).
+ *
+ * Walks phases in sortOrder. Each phase's start = next weekday after
+ * previous phase's end. Duration is preserved (clamped to min).
+ * The first phase in each roll keeps its existing start.
+ *
+ * Returns how many phases were updated.
+ */
+export async function rechainTrackPhases(
+  trackId: number,
+  roll?: "A" | "B"
+): Promise<number> {
+  const allPhases = await db
+    .select()
+    .from(phases)
+    .where(eq(phases.trackId, trackId))
+    .orderBy(asc(phases.sortOrder));
+
+  const rolls = roll ? [roll] : ["A", "B"] as const;
+  let totalUpdated = 0;
+
+  for (const r of rolls) {
+    const rollPhases = allPhases.filter((p) => p.roll === r);
+    if (rollPhases.length === 0) continue;
+
+    let chainStart = rollPhases[0].start; // first phase keeps its start
+
+    for (let i = 0; i < rollPhases.length; i++) {
+      const p = rollPhases[i];
+      const dur = Math.max(getMinDuration(p.name), p.duration);
+      const newStart = i === 0 ? chainStart : chainStart;
+      const needsUpdate = p.start !== newStart || p.duration !== dur;
+
+      if (needsUpdate) {
+        await db
+          .update(phases)
+          .set({ start: newStart, duration: dur, updatedAt: new Date() })
+          .where(eq(phases.id, p.id));
+        totalUpdated++;
+      }
+
+      const end = phaseEnd(newStart, dur);
+      chainStart = addWeekdays(end, 1);
+    }
+  }
+
+  return totalUpdated;
 }
 
 /** Create a new track with default phases. */
