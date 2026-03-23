@@ -35,7 +35,7 @@ export function SprintRace({ state }: Props) {
     if (loadedStateRef.current) return; // already loaded
     loadedStateRef.current = stateJson;
 
-    fetch("/sprint_tracker.html")
+    fetch("/sprint_animation.html")
       .then((r) => r.text())
       .then((raw) => {
         const injection = `<script>window.__SPRINT_STATE__ = ${stateJson};</script>`;

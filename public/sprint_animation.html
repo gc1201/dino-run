@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprint Tracker</title>
+  <style>
+    :root {
+      --bg: #111; --surface: #1a1a1a; --surface2: #222; --border: #333;
+      --accent: #fff; --text: #e8e8e8; --muted: #666; --today: #FFD700;
+      --px-font: 'Courier New', Courier, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--px-font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; image-rendering: pixelated; }
+    .hdr { display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; background: #000; border-bottom: 3px solid #333; position: sticky; top: 0; z-index: 60; gap: 12px; }
+    .hdr-left { display: flex; align-items: center; gap: 14px; }
+    .app-title { font-size: 1rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.12em; }
+    .proj-name { font-size: 0.75rem; color: #888; border-left: 2px solid #333; padding-left: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .hi-score { font-size: 0.78rem; color: #888; letter-spacing: 0.1em; text-transform: uppercase; }
+    .hi-score span { color: #fff; }
+    .main { padding: 24px 32px 80px; }
+    .track-area { min-width: 640px; }
+    .track-row { display: flex; align-items: stretch; }
+    .track-label-col { width: 140px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; padding-right: 16px; text-align: right; }
+    .juris-name { font-size: 0.88rem; font-weight: 700; line-height: 1.2; }
+    .track-body-col { flex: 1; min-width: 0; position: relative; }
+    .date-ruler-row { margin-bottom: 2px; }
+    .date-ruler { position: relative; height: 28px; border-bottom: 2px solid #333; }
+    .month-tick { position: absolute; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: flex-start; }
+    .month-tick-line { width: 2px; height: 8px; background: #444; }
+    .month-tick-label { font-size: 0.58rem; color: #666; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; padding-top: 2px; text-transform: uppercase; }
+    .lane-row { margin-bottom: 6px; }
+    .lane-body { position: relative; background: rgba(255,255,255,0.02); border: 1px solid #252525; border-radius: 4px; }
+    .phase-strip { position: absolute; left: 0; right: 0; height: 20px; border-radius: 0; overflow: hidden; background: #1a1a1a; }
+    .phase-strip.strip-b { bottom: 26px; top: auto; }
+    .phase-strip.strip-a { bottom: 2px; top: auto; }
+    .roll-label { position: absolute; left: -18px; font-size: 0.55rem; font-weight: 700; color: var(--muted); letter-spacing: 0.05em; }
+    .roll-label.label-b { bottom: 32px; top: auto; }
+    .roll-label.label-a { bottom: 6px; top: auto; }
+    .lane-divider { position: absolute; left: 0; right: 0; bottom: 24px; top: auto; height: 1px; background: #2a2a2a; }
+    .ph-seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.56rem; font-weight: 700; color: rgba(255,255,255,0.95); text-transform: uppercase; letter-spacing: 0.07em; overflow: hidden; white-space: nowrap; border-right: 2px solid rgba(0,0,0,0.5); cursor: default; transition: filter 0.2s; }
+    .ph-seg:hover { filter: brightness(1.2); }
+    .ph-seg.not-started { opacity: 0.28; }
+    .ph-seg.in-progress { animation: ph-pulse 1.4s steps(2, start) infinite; }
+    @keyframes ph-pulse { 0%,100% { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5); } 50% { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.0); } }
+    .track-bar-b { position: absolute; left: 0; right: 0; height: 4px; background: transparent; }
+    .track-bar-a { position: absolute; left: 0; right: 0; height: 4px; background: transparent; }
+    .today-line { position: absolute; top: 0; bottom: 0; width: 3px; background: repeating-linear-gradient(to bottom, var(--today) 0px, var(--today) 6px, transparent 6px, transparent 10px); z-index: 4; pointer-events: none; }
+    .today-line::before { content: 'NOW'; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; font-weight: 900; color: var(--today); letter-spacing: 0.1em; white-space: nowrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; padding-top: 18px; margin-top: 20px; border-top: 1px solid var(--border); align-items: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--muted); }
+    .legend-sym { font-size: 0.8rem; }
+    .legend-div { width: 1px; height: 16px; background: var(--border); }
+  </style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="app-title">&#9711; SPRINT TRACKER</span>
+    <span class="proj-name" id="proj-disp">Multi-Jurisdiction Project</span>
+  </div>
+  <div class="hi-score">HI SCORE <span id="hi-score-val">00000</span></div>
+</header>
+<div class="main" id="main">
+  <div class="track-area" id="track-area"></div>
+</div>
+<canvas id="cv" style="position:fixed;top:0;left:0;pointer-events:none;z-index:10;"></canvas>
+
+<script>
+// ── STATE (overridden by __SPRINT_STATE__ when embedded) ──
+let S = { projectName: "Arnold Sprint", members: [], tracks: [] };
+if (window.__SPRINT_STATE__) {
+  const ext = window.__SPRINT_STATE__;
+  S.projectName = ext.projectName ?? S.projectName;
+  S.members = ext.members ?? S.members;
+  S.tracks = ext.tracks ?? S.tracks;
+}
+
+// ── DATE UTILITIES ──
+function pd(s) { return new Date(s + "T12:00:00"); }
+let _range = null;
+function globalRange() {
+  if (_range) return _range;
+  let mn = Infinity, mx = -Infinity;
+  S.tracks.forEach(tr => tr.phases.forEach(ph => {
+    const s = pd(ph.start).getTime(), e = pd(phaseEnd(ph)).getTime();
+    if (s < mn) mn = s; if (e > mx) mx = e;
+  }));
+  _range = { min: mn, max: mx }; return _range;
+}
+function invalidateRange() { _range = null; }
+function d2pct(dateStr) { const { min, max } = globalRange(); if (max === min) return 0; return Math.max(0, Math.min(100, (pd(dateStr).getTime() - min) / (max - min) * 100)); }
+function todayPct() { const { min, max } = globalRange(); if (max === min) return 50; return Math.max(0, Math.min(100, (Date.now() - min) / (max - min) * 100)); }
+function phasePct(phases) {
+  const { min, max } = globalRange(); if (max === min) return 0;
+  const today = Date.now(); let pos = min;
+  for (const ph of phases) {
+    const s = pd(ph.start).getTime(), e = pd(phaseEnd(ph)).getTime();
+    if (ph.status === "done") { pos = e; }
+    else if (ph.status === "in_progress") { pos = Math.max(s, Math.min(today, e)); break; }
+    else { break; }
+  }
+  return Math.max(0, Math.min(100, (pos - min) / (max - min) * 100));
+}
+function computeRunnerPct(track) { return phasePct(track.phases.filter(p => p.roll !== "B")); }
+function computeHopperPct(track) {
+  if (!track.hoppers || track.hoppers.length === 0) return null;
+  const bPhases = track.phases.filter(p => p.roll === "B");
+  if (bPhases.length === 0) return null;
+  if (bPhases.every(p => p.status === "not_started")) return null;
+  if (bPhases.every(p => p.status === "done")) return null;
+  return phasePct(bPhases);
+}
+function monthMarkers() {
+  const { min, max } = globalRange(); const total = max - min; const markers = [];
+  let d = new Date(min); d = new Date(d.getFullYear(), d.getMonth(), 1);
+  const months = Math.round(total / (30*24*3600*1000)); const step = months > 30 ? 3 : months > 18 ? 2 : 1;
+  while (d.getTime() <= max) { markers.push(new Date(d)); d = new Date(d.getFullYear(), d.getMonth() + step, 1); }
+  return markers;
+}
+function fmtDate(str) { return pd(str).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }); }
+function addWeekdays(dateStr, n) { if (n <= 0) return dateStr; let d = pd(dateStr); let c = 0; while (c < n) { d.setDate(d.getDate()+1); if (d.getDay()!==0&&d.getDay()!==6) c++; } return d.toISOString().slice(0,10); }
+function phaseEnd(ph) { const dur = (ph.duration ?? 5); if (dur <= 1) return ph.start; return addWeekdays(ph.start, dur - 1); }
+
+// ── DOM HELPERS ──
+function mkEl(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls.trim(); return e; }
+function mkRow(cls) { return mkEl("div", "track-row " + (cls||"")); }
+
+// ── TRACK RENDERING ──
+function updateHiScore() {
+  const el = document.getElementById("hi-score-val"); if (!el) return;
+  const avg = S.tracks.reduce((sum, t) => sum + computeRunnerPct(t), 0) / (S.tracks.length||1);
+  el.textContent = String(Math.round(avg * 100)).padStart(5, "0");
+}
+function renderTrack() {
+  invalidateRange(); updateHiScore();
+  const area = document.getElementById("track-area"); area.innerHTML = "";
+  const { min, max } = globalRange(); const total = max - min;
+  // Date ruler
+  const rulerRow = mkRow("date-ruler-row"); const rulerLabel = mkEl("div","track-label-col");
+  rulerLabel.innerHTML = '<span style="font-size:0.62rem;color:var(--muted);font-weight:700;letter-spacing:.06em;text-align:right;display:block;">DATE</span>';
+  rulerRow.appendChild(rulerLabel);
+  const rulerBodyCol = mkEl("div","track-body-col"); const rulerEl = mkEl("div","date-ruler");
+  monthMarkers().forEach(d => {
+    const pct = (d.getTime()-min)/total*100; if (pct<0||pct>100) return;
+    const tick = mkEl("div","month-tick"); tick.style.left = pct+"%";
+    const isJan = d.getMonth()===0; const lbl = d.toLocaleDateString("en-US",{month:"short"});
+    tick.innerHTML = '<div class="month-tick-line"></div><div class="month-tick-label">'+(isJan ? lbl+" '"+String(d.getFullYear()).slice(2) : lbl)+'</div>';
+    rulerEl.appendChild(tick);
+  });
+  rulerBodyCol.appendChild(rulerEl); rulerRow.appendChild(rulerBodyCol); area.appendChild(rulerRow);
+
+  function buildStrip(phases, rollClass) {
+    const strip = mkEl("div","phase-strip "+rollClass);
+    phases.forEach(ph => {
+      const endStr = phaseEnd(ph); const left = d2pct(ph.start), w = d2pct(endStr)-left; if (w<=0) return;
+      const seg = mkEl("div","ph-seg "+(ph.status==="done"?"done":ph.status==="in_progress"?"in-progress":"not-started"));
+      seg.style.left=left+"%"; seg.style.width=w+"%"; seg.style.background=ph.color;
+      seg.textContent = w>=9?ph.name:w>=4?ph.name[0]:"";
+      seg.title = ph.name+" | "+fmtDate(ph.start)+" → "+fmtDate(endStr)+" | "+ph.status.replace("_"," ")+" | "+(ph.duration??"?")+"d";
+      strip.appendChild(seg);
+    });
+    return strip;
+  }
+
+  S.tracks.forEach(track => {
+    const runner = S.members.find(m => m.id === track.mainRunnerId);
+    const laneRow = mkRow("lane-row");
+    const labelCol = mkEl("div","track-label-col"); const jname = mkEl("div","juris-name");
+    jname.style.color = runner ? runner.color : "var(--text)"; jname.textContent = track.jurisdiction;
+    labelCol.appendChild(jname); laneRow.appendChild(labelCol);
+    const bodyCol = mkEl("div","track-body-col"); const laneBody = mkEl("div","lane-body");
+    laneBody.id = "tbar-"+track.id;
+    if (runner) laneBody.style.borderLeft = "3px solid "+runner.color+"44";
+    const aPhases = track.phases.filter(p => p.roll !== "B");
+    const bPhases = track.phases.filter(p => p.roll === "B");
+    const lblB = mkEl("div","roll-label label-b"); lblB.textContent="B"; laneBody.appendChild(lblB);
+    laneBody.appendChild(buildStrip(bPhases,"strip-b"));
+    laneBody.appendChild(mkEl("div","lane-divider"));
+    const lblA = mkEl("div","roll-label label-a"); lblA.textContent="A"; laneBody.appendChild(lblA);
+    laneBody.appendChild(buildStrip(aPhases,"strip-a"));
+    const tbarA = mkEl("div","track-bar-a"); tbarA.id="trackbar-a-"+track.id;
+    const tbarB = mkEl("div","track-bar-b"); tbarB.id="trackbar-b-"+track.id;
+    laneBody.appendChild(tbarA); laneBody.appendChild(tbarB);
+    const tpct = todayPct();
+    if (tpct>=0&&tpct<=100) { const tl=mkEl("div","today-line"); tl.style.left=tpct+"%"; laneBody.appendChild(tl); }
+    bodyCol.appendChild(laneBody); laneRow.appendChild(bodyCol); area.appendChild(laneRow);
+  });
+
+  // Legend
+  const legRow=mkRow("legend-row"); legRow.appendChild(mkEl("div","track-label-col"));
+  const legBody=mkEl("div","track-body-col"); const leg=mkEl("div","legend");
+  [["✓ Done","#10B981"],["▶ In Progress","#F59E0B"],["○ Not Started","#64748b"]].forEach(([l,c])=>{
+    const li=mkEl("div","legend-item"); li.innerHTML='<span class="legend-sym" style="color:'+c+'">'+l.split(" ")[0]+'</span><span>'+l.slice(2)+'</span>'; leg.appendChild(li);
+  });
+  leg.appendChild(mkEl("div","legend-div"));
+  leg.innerHTML+='<div class="legend-item"><span class="legend-sym" style="font-size:10px">T-REX</span><span>Runner</span></div>';
+  leg.innerHTML+='<div class="legend-item"><span class="legend-sym" style="font-size:10px">PTERO</span><span>Hopper</span></div>';
+  legBody.appendChild(leg); legRow.appendChild(legBody); area.appendChild(legRow);
+
+  // Dynamic sizing
+  const STRIP_ZONE=50, LANE_GAP=8, MIN_LANE_H=140, hdrH=50, rulerH=32, legendH=50, padH=104;
+  const tc = S.tracks.length||1;
+  const available = window.innerHeight-hdrH-rulerH-legendH-padH-(LANE_GAP*(tc-1));
+  const laneH = Math.max(MIN_LANE_H, Math.floor(available/tc));
+  const runArea = laneH-STRIP_ZONE;
+  document.querySelectorAll('.lane-body').forEach(el => { el.style.height=laneH+'px'; });
+  document.querySelectorAll('.track-bar-b').forEach(el => { el.style.top=Math.floor(runArea*0.35)+'px'; });
+  document.querySelectorAll('.track-bar-a').forEach(el => { el.style.top=Math.floor(runArea*0.78)+'px'; });
+}
+
+// ── CANVAS SPRITES ──
+const cv = document.getElementById("cv"); const ctx = cv.getContext("2d");
+function resizeCv() { cv.width=window.innerWidth; cv.height=window.innerHeight; }
+window.addEventListener("resize", () => { resizeCv(); renderTrack(); }); resizeCv();
+
+let gameState = "waiting", raceStartTs = 0;
+function startRace() { if (gameState!=="waiting") return; gameState="racing"; raceStartTs=performance.now(); }
+document.addEventListener("keydown", e => { if (e.code==="Space"&&gameState==="waiting") { e.preventDefault(); startRace(); } });
+document.addEventListener("click", e => { if (gameState==="waiting"&&!e.target.closest("button")) startRace(); });
+
+const PX = 2;
+const DINO = [
+  ["..........########",".........##########",".........#.########",".........##########",".........##########",".........######....",".........########..",".....\x23...#####.....","....##..######.....","....###.######.....","....##########.....","...###########.....","...############....","..##.##########....",".##..#########.....","#....########.....",".....\x23####........","......####........","......##.##.......","......#...#.......","......##..........","......##.........."],
+  ["..........########",".........##########",".........#.########",".........##########",".........##########",".........######....",".........########..",".....\x23...#####.....","....##..######.....","....###.######.....","....##########.....","...###########.....","...############....","..##.##########....",".##..#########.....","#....########.....",".....\x23####........","......####........","......#..##.......","......#...#.......",".......\x23\x23.........",".......\x23\x23........."],
+];
+const PTERO = [
+  ["...##....##...","..####..####..",".######.#####.","##...######..#",".....######...","......####...."],
+  ["......####....",".....######...","##...######..#",".######.#####.","..####..####..","...##....##..."],
+];
+const CACTUS = ["...##...","...##...",".#.##.#.",".######.",".######.","...##...","...##...","...####.","....###.","....##.."];
+const CLOUD = ["...####...",".########.","##########",".########."];
+const STARS = Array.from({length:50},()=>({x:Math.random(),y:Math.random()*0.45,sz:Math.random()>0.75?2:1,phase:Math.floor(Math.random()*8)}));
+const BG_CLOUDS = Array.from({length:7},(_,i)=>({x:(i/7)*window.innerWidth+Math.random()*300,y:20+Math.random()*80,speed:0.25+Math.random()*0.25}));
+
+function drawSprite(rows,ox,oy,color) { ctx.fillStyle=color; rows.forEach((row,r)=>{ for(let c=0;c<row.length;c++) if(row[c]==="#") ctx.fillRect(ox+c*PX,oy+r*PX,PX,PX); }); }
+function drawDino(x,gy,color,frame) { const sp=DINO[frame&1]; drawSprite(sp,x-sp[0].length*PX/2,gy-sp.length*PX,color); }
+function drawPtero(x,gy,color,frame) { const sp=PTERO[frame&1]; drawSprite(sp,x-sp[0].length*PX/2,gy-sp.length*PX-10,color); }
+function drawCactus(x,gy,color) { drawSprite(CACTUS,x-CACTUS[0].length*PX/2,gy-CACTUS.length*PX,color); }
+function drawGround(left,gy,w) { ctx.fillStyle="#555"; ctx.fillRect(left,gy,w,2); ctx.fillStyle="#444"; for(let x=left;x<left+w;x+=14) ctx.fillRect(x,gy+5,8,1); }
+function drawFinishFlag(x,gy,color) { const pH=CACTUS.length*PX+16,pT=gy-pH; ctx.fillStyle=color; ctx.fillRect(x-1,pT,2,pH); const cs=4; for(let r=0;r<3;r++) for(let c=0;c<4;c++) { ctx.fillStyle=(r+c)%2===0?color:"#222"; ctx.fillRect(x+1+c*cs,pT+r*cs,cs,cs); } }
+function drawLabel(x,y,text,color) { ctx.save(); ctx.font="bold 9px 'Courier New',monospace"; ctx.textAlign="center"; ctx.fillStyle=color; ctx.fillText(text,x,y); ctx.restore(); }
+
+let _lastTs=0, _animFrame=0;
+function animLoop(ts) {
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if (ts-_lastTs>150) { _lastTs=ts; _animFrame++; }
+  const idleFrame = Math.floor(_animFrame/4);
+  ctx.globalAlpha=0.18; BG_CLOUDS.forEach(c=>{ c.x-=c.speed; if(c.x<-CLOUD[0].length*PX) c.x=cv.width+60; drawSprite(CLOUD,c.x,c.y,"#aaa"); }); ctx.globalAlpha=1;
+  STARS.forEach(s=>{ ctx.fillStyle=(_animFrame+s.phase)%10<7?"#666":"#333"; ctx.fillRect(s.x*cv.width,s.y*cv.height,s.sz,s.sz); });
+
+  S.tracks.forEach(track => {
+    const raEl=document.getElementById("trackbar-a-"+track.id), rbEl=document.getElementById("trackbar-b-"+track.id);
+    if (!raEl||!rbEl) return; const ra=raEl.getBoundingClientRect(), rb=rbEl.getBoundingClientRect(); if(ra.width===0) return;
+    const gyA=ra.bottom, gyB=rb.bottom, laneLeft=ra.left, laneWidth=ra.width;
+    drawGround(laneLeft,gyA,laneWidth); drawGround(laneLeft,gyB,laneWidth);
+    const gateH=DINO[0].length*PX+14; ctx.fillStyle="rgba(255,255,255,0.2)";
+    ctx.fillRect(laneLeft,gyA-gateH,2,gateH); ctx.fillRect(laneLeft,gyB-PTERO[0].length*PX-12,2,PTERO[0].length*PX+12);
+    const aPhases=track.phases.filter(p=>p.roll!=="B");
+    aPhases.forEach((ph,pi)=>{ const cx=laneLeft+(d2pct(phaseEnd(ph))/100)*laneWidth; if(pi<aPhases.length-1){ctx.globalAlpha=0.4;drawCactus(cx,gyA,"#888");ctx.globalAlpha=1;}else{drawFinishFlag(cx,gyA,"#fff");} });
+    track.phases.filter(p=>p.roll==="B").forEach(ph=>{ const cx=laneLeft+(d2pct(phaseEnd(ph))/100)*laneWidth; ctx.globalAlpha=0.3;drawCactus(cx,gyB,"#666");ctx.globalAlpha=1; });
+    const runner=S.members.find(m=>m.id===track.mainRunnerId), runnerColor=runner?runner.color:"#555", runnerLabel=runner?runner.name:"?";
+    const activeHoppers=(track.hoppers||[]).map(h=>{const m=S.members.find(x=>x.id===h.memberId);const p=track.phases.find(x=>x.id===h.phaseId);if(!m||!p||p.status!=="in_progress")return null;return{member:m,phase:p};}).filter(Boolean);
+    const targetH=computeHopperPct(track);
+    if (gameState==="waiting") {
+      const sx=laneLeft+20; drawDino(sx,gyA,runnerColor,idleFrame); drawLabel(sx,gyA-DINO[0].length*PX-5,runnerLabel,runnerColor);
+      activeHoppers.forEach((h,i)=>{ drawPtero(sx+i*30,gyB-i*14,h.member.color,idleFrame+1+i); drawLabel(sx+i*30,gyB-PTERO[0].length*PX-12-i*14,h.member.name,h.member.color); });
+    } else {
+      const targetR=computeRunnerPct(track); track._dpr+=(targetR-track._dpr)*0.04; if(targetH!==null) track._dph+=(targetH-track._dph)*0.04;
+      const rx=laneLeft+(track._dpr/100)*laneWidth; drawDino(rx,gyA,runnerColor,_animFrame); drawLabel(rx,gyA-DINO[0].length*PX-5,runnerLabel+" "+Math.round(track._dpr)+"%",runnerColor);
+      activeHoppers.forEach((h,i)=>{ if(targetH!==null){ const hx=laneLeft+(track._dph/100)*laneWidth; drawPtero(hx+i*30,gyB-i*14,h.member.color,_animFrame+1+i); drawLabel(hx+i*30,gyB-PTERO[0].length*PX-12-i*14,h.member.name+" "+Math.round(track._dph)+"%",h.member.color); } });
+    }
+  });
+  if (gameState==="waiting") { const cx=cv.width/2,cy=cv.height/2+20; if(_animFrame%18<12){ctx.save();ctx.font="bold 14px 'Courier New',monospace";ctx.textAlign="center";ctx.fillStyle="#fff";ctx.fillText("PRESS  SPACE  TO  START  RACE",cx,cy);ctx.font="10px 'Courier New',monospace";ctx.fillStyle="#666";ctx.fillText("or click anywhere",cx,cy+20);ctx.restore();} }
+  if (gameState==="racing") { const el=performance.now()-raceStartTs; if(el<1000){const a=1-el/1000;ctx.save();ctx.globalAlpha=a;ctx.font="bold "+Math.round(52*(1+(1-a)*0.6))+"px 'Courier New',monospace";ctx.textAlign="center";ctx.fillStyle="#FFD700";ctx.fillText("GO!",cv.width/2,cv.height/2);ctx.restore();} }
+  requestAnimationFrame(animLoop);
+}
+requestAnimationFrame(animLoop);
+
+// ── INIT ──
+document.getElementById("proj-disp").textContent = S.projectName;
+S.tracks.forEach(t => { t._dpr = 0; t._dph = 0; });
+renderTrack();
+
+// ── INCREMENTAL UPDATE VIA postMessage ──
+window.addEventListener('message', function(evt) {
+  if (!evt.data || evt.data.type !== 'stateUpdate') return;
+  const next = evt.data.state; if (!next || !next.tracks) return;
+  S.projectName = next.projectName ?? S.projectName;
+  S.members = next.members ?? S.members;
+  const posMap = {}; S.tracks.forEach(t => { posMap[t.id] = { _dpr: t._dpr||0, _dph: t._dph||0 }; });
+  S.tracks = next.tracks.map(t => { const prev = posMap[t.id]; return { ...t, _dpr: prev?prev._dpr:0, _dph: prev?prev._dph:0 }; });
+  document.getElementById("proj-disp").textContent = S.projectName;
+  invalidateRange(); renderTrack();
+  if (gameState === "waiting") startRace();
+});
+</script>
+</body>
+</html>
