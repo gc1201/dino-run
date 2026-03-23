@@ -266,7 +266,7 @@ function animLoop(ts) {
       const sx=laneLeft+20; drawDino(sx,gyA,runnerColor,idleFrame); drawLabel(sx,gyA-DINO[0].length*PX-5,runnerLabel,runnerColor);
       activeHoppers.forEach((h,i)=>{ drawPtero(sx+i*30,gyB-i*14,h.member.color,idleFrame+1+i); drawLabel(sx+i*30,gyB-PTERO[0].length*PX-12-i*14,h.member.name,h.member.color); });
     } else {
-      const targetR=computeRunnerPct(track); track._dpr+=(targetR-track._dpr)*0.04; if(targetH!==null) track._dph+=(targetH-track._dph)*0.04;
+      const targetR=computeRunnerPct(track); track._dpr+=(targetR-track._dpr)*0.012; if(targetH!==null) track._dph+=(targetH-track._dph)*0.012;
       const rx=laneLeft+(track._dpr/100)*laneWidth; drawDino(rx,gyA,runnerColor,_animFrame); drawLabel(rx,gyA-DINO[0].length*PX-5,runnerLabel+" "+Math.round(track._dpr)+"%",runnerColor);
       activeHoppers.forEach((h,i)=>{ if(targetH!==null){ const hx=laneLeft+(track._dph/100)*laneWidth; drawPtero(hx+i*30,gyB-i*14,h.member.color,_animFrame+1+i); drawLabel(hx+i*30,gyB-PTERO[0].length*PX-12-i*14,h.member.name+" "+Math.round(track._dph)+"%",h.member.color); } });
     }
