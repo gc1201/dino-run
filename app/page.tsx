@@ -23,12 +23,9 @@ export default async function Home() {
 
   return (
     <div style={styles.root}>
-      {/* ── Left: edit panel ── */}
       <aside style={styles.sidebar}>
         <EditPanel state={state} />
       </aside>
-
-      {/* ── Right: animation ── */}
       <main style={styles.main}>
         <SprintRace state={state} />
       </main>
@@ -41,14 +38,14 @@ const styles = {
     display: "flex",
     height: "100dvh",
     overflow: "hidden",
-    background: "var(--bg)",
+    background: "#111",
   },
   sidebar: {
     width: 300,
     flexShrink: 0,
-    borderRight: "1px solid var(--border)",
+    borderRight: "1px solid #333",
     overflowY: "auto" as const,
-    background: "var(--surface)",
+    background: "#1a1a1a",
   },
   main: {
     flex: 1,

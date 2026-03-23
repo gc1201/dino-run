@@ -117,7 +117,7 @@
 
     .lane-body {
       position: relative;
-      height: 90px;
+      /* height set dynamically by JS to fill viewport */
     }
 
     /* Phase strip — pixel style */
@@ -128,8 +128,9 @@
       overflow: hidden;
       background: #1a1a1a;
     }
-    .phase-strip.strip-b { top: 2px; }
-    .phase-strip.strip-a { top: 28px; }
+    /* Positioned from bottom by JS — these are fallback values */
+    .phase-strip.strip-b { bottom: 26px; top: auto; }
+    .phase-strip.strip-a { bottom: 2px; top: auto; }
 
     /* A/B roll label */
     .roll-label {
@@ -138,13 +139,14 @@
       font-weight: 700; color: var(--muted);
       letter-spacing: 0.05em;
     }
-    .roll-label.label-b { top: 8px; }
-    .roll-label.label-a { top: 34px; }
+    /* Positioned from bottom to match strips */
+    .roll-label.label-b { bottom: 32px; top: auto; }
+    .roll-label.label-a { bottom: 6px; top: auto; }
 
-    /* Lane divider */
+    /* Lane divider between B and A strips at bottom */
     .lane-divider {
       position: absolute; left: 0; right: 0;
-      top: 24px; height: 1px;
+      bottom: 24px; top: auto; height: 1px;
       background: #2a2a2a;
     }
 
@@ -182,13 +184,13 @@
     /* Flag markers — hidden, cacti drawn by canvas instead */
     .flag-row { display: none; }
 
-    /* Track bars — invisible, only for getBoundingClientRect positioning */
-    .track-bar-b { position: absolute; top: 22px; left: 0; right: 0; height: 4px; background: transparent; }
-    .track-bar-a { position: absolute; top: 52px; left: 0; right: 0; height: 4px; background: transparent; }
+    /* Track bars — invisible, positioned by JS for getBoundingClientRect */
+    .track-bar-b { position: absolute; left: 0; right: 0; height: 4px; background: transparent; }
+    .track-bar-a { position: absolute; left: 0; right: 0; height: 4px; background: transparent; }
 
     /* TODAY line — gold vertical dashes */
     .today-line {
-      position: absolute; top: 22px; bottom: 10px; width: 3px;
+      position: absolute; top: 0px; bottom: 0px; width: 3px;
       background: repeating-linear-gradient(
         to bottom, var(--today) 0px, var(--today) 6px, transparent 6px, transparent 10px
       );
@@ -465,7 +467,6 @@ let S = {
         { id: 57, name: "Rollout",     color: "#F97316", start: "2026-04-07", duration: 4, status: "not_started", roll: "A" },
       ]
     },
-    {
   ],
 };
 
@@ -688,6 +689,32 @@ function renderTrack() {
   legBody.appendChild(leg);
   legRow.appendChild(legBody);
   area.appendChild(legRow);
+
+  // ── Dynamic lane sizing: fill available viewport height ──
+  const STRIP_ZONE = 50; // B-strip(20px) + divider + A-strip(20px) + margin — at bottom
+  const MIN_LANE_H = 140;
+  const hdrH = 50;   // header bar
+  const rulerH = 32; // date ruler
+  const legendH = 50; // legend row
+  const padH = 104;  // main padding top+bottom
+  const trackCount = S.tracks.length || 1;
+  const available = window.innerHeight - hdrH - rulerH - legendH - padH;
+  const laneH = Math.max(MIN_LANE_H, Math.floor(available / trackCount));
+
+  // Running area is the top portion (above the strip zone at the bottom)
+  const runArea = laneH - STRIP_ZONE;
+  const tbarBTop = Math.floor(runArea * 0.35);
+  const tbarATop = Math.floor(runArea * 0.78);
+
+  document.querySelectorAll('.lane-body').forEach(el => {
+    el.style.height = laneH + 'px';
+  });
+  document.querySelectorAll('.track-bar-b').forEach(el => {
+    el.style.top = tbarBTop + 'px';
+  });
+  document.querySelectorAll('.track-bar-a').forEach(el => {
+    el.style.top = tbarATop + 'px';
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -722,39 +749,59 @@ document.addEventListener("click", e => {
   if (gameState === "waiting" && !e.target.closest("#ep, .ep, button")) startRace();
 });
 
-const PX = 3; // canvas pixels per art pixel
+const PX = 2; // canvas pixels per art pixel
 
 // ── Sprite definitions ('#' = filled pixel, '.' = transparent) ──
 
-// T-Rex dino, 2 running frames (12 wide × 12 tall)
+// Chrome T-Rex, 2 running frames (18 wide × 22 tall)
 const DINO = [
-  [ // frame 0 — left leg forward
-    "......#####.",
-    ".....#######",
-    ".....#.#####",
-    ".....#######",
-    ".........###",
-    "...#########",
-    "..##########",
-    ".###########",
-    "..#########.",
-    "...##.......",
-    "...##..##...",
-    "....#...##..",
+  [ // frame 0 — right leg forward
+    "..........########",
+    ".........##########",
+    ".........#.########",
+    ".........##########",
+    ".........##########",
+    ".........######....",
+    ".........########..",
+    ".....#...#####.....",
+    "....##..######.....",
+    "....###.######.....",
+    "....##########.....",
+    "...###########.....",
+    "...############....",
+    "..##.##########....",
+    ".##..#########.....",
+    "#....########.....",
+    ".....#####........",
+    "......####........",
+    "......##.##.......",
+    "......#...#.......",
+    "......##..........",
+    "......##..........",
   ],
-  [ // frame 1 — right leg forward
-    "......#####.",
-    ".....#######",
-    ".....#.#####",
-    ".....#######",
-    ".........###",
-    "...#########",
-    "..##########",
-    ".###########",
-    "..#########.",
-    "...##.......",
-    "..##....##..",
-    "..#......#..",
+  [ // frame 1 — left leg forward
+    "..........########",
+    ".........##########",
+    ".........#.########",
+    ".........##########",
+    ".........##########",
+    ".........######....",
+    ".........########..",
+    ".....#...#####.....",
+    "....##..######.....",
+    "....###.######.....",
+    "....##########.....",
+    "...###########.....",
+    "...############....",
+    "..##.##########....",
+    ".##..#########.....",
+    "#....########.....",
+    ".....#####........",
+    "......####........",
+    "......#..##.......",
+    "......#...#.......",
+    ".......##.........",
+    ".......##.........",
   ],
 ];
 
@@ -947,15 +994,11 @@ function animLoop(ts) {
       }
     });
 
-    // Cacti / finish flags for B-roll phases
+    // Cacti only for B-roll phases (no finish flag)
     const bPhases = track.phases.filter(p => p.roll === "B");
-    bPhases.forEach((ph, pi) => {
+    bPhases.forEach((ph) => {
       const cx = laneLeft + (d2pct(phaseEnd(ph)) / 100) * laneWidth;
-      if (pi < bPhases.length - 1) {
-        ctx.globalAlpha = 0.4; drawCactus(cx, gyB, "#888"); ctx.globalAlpha = 1;
-      } else {
-        drawFinishFlag(cx, gyB, "#aaa");
-      }
+      ctx.globalAlpha = 0.3; drawCactus(cx, gyB, "#666"); ctx.globalAlpha = 1;
     });
 
     const runner = S.members.find(m => m.id === track.mainRunnerId);
@@ -1133,10 +1176,10 @@ function tracksHTML() {
           </div>
           <div class="ep-phase-row2">
             <div>
-              <label class="ep-lbl">Start</label>
-              <input type="text" class="ep-in date-in" value="${ph.start}"
+              <label class="ep-lbl">Due Date</label>
+              <input type="text" class="ep-in date-in" value="${phaseEnd(ph)}"
                      placeholder="YYYY-MM-DD"
-                     onblur="setPhaseStart(${tr.id},${ph.id},this.value,this)"
+                     onblur="setPhaseDueDate(${tr.id},${ph.id},this.value,${ph.duration ?? 5},this)"
                      onkeydown="if(event.key==='Enter'){this.blur()}">
             </div>
             <div>
@@ -1146,8 +1189,8 @@ function tracksHTML() {
                      onchange="setPhaseDuration(${tr.id},${ph.id},+this.value)">
             </div>
             <div>
-              <label class="ep-lbl">Ends</label>
-              <div class="ep-end-display">${fmtDate(phaseEnd(ph))}</div>
+              <label class="ep-lbl">Starts</label>
+              <div class="ep-end-display">${fmtDate(ph.start)}</div>
             </div>
             <div>
               <label class="ep-lbl">Status</label>
@@ -1295,6 +1338,28 @@ function setPhaseStart(tid, pid, v, el) {
   mutP(tid, pid, p => p.start = norm);
   refresh();
 }
+function subtractWeekdays(dateStr, n) {
+  if (n <= 0) return dateStr;
+  let d = pd(dateStr);
+  let count = 0;
+  while (count < n) {
+    d.setDate(d.getDate() - 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return d.toISOString().slice(0, 10);
+}
+function setPhaseDueDate(tid, pid, v, duration, el) {
+  const norm = normDate(v);
+  if (!norm) {
+    if (el) { el.classList.add("date-err"); el.select(); }
+    return;
+  }
+  if (el) { el.classList.remove("date-err"); el.value = norm; }
+  const start = subtractWeekdays(norm, Math.max(1, duration) - 1);
+  mutP(tid, pid, p => p.start = start);
+  refresh();
+}
 function setPhaseDuration(tid, pid, n) {
   const d = Math.max(1, Math.round(n) || 1);
   mutP(tid, pid, p => p.duration = d);
@@ -1437,6 +1502,10 @@ function countWeekdays(start, end) {
 // by SprintRace.tsx. When opened as a standalone file, falls back to localStorage.
 if (window.__SPRINT_STATE__) {
   // ── Server-driven mode (Next.js + Supabase) ──
+  // Hide the HTML edit button — editing is done via the React sidebar
+  const editBtn = document.querySelector('.hdr .btn-primary');
+  if (editBtn) editBtn.style.display = 'none';
+
   const ext = window.__SPRINT_STATE__;
   S.projectName = ext.projectName ?? S.projectName;
   S.members     = ext.members     ?? S.members;

@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * EditPanel — sidebar for editing phase dates, durations, statuses, rolls,
+ * EditPanel — sidebar for editing phase due dates, durations, statuses, rolls,
  * track timeline starts, jurisdictions, and hopper assignments.
+ *
+ * NOTE: This component is currently unused — the app uses the HTML-based edit
+ * panel inside sprint_tracker.html. Kept for reference / potential future use.
  */
 
 import { useRouter } from "next/navigation";
@@ -20,6 +23,38 @@ const STATUS_LABEL: Record<Status, string> = {
 
 interface Props {
   state: AnimationState;
+}
+
+/** Add weekdays to a date string (YYYY-MM-DD). */
+function addWeekdays(dateStr: string, n: number): string {
+  if (n <= 0) return dateStr;
+  const d = new Date(dateStr + "T12:00:00");
+  let count = 0;
+  while (count < n) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+/** Subtract weekdays from a date string (YYYY-MM-DD). */
+function subtractWeekdays(dateStr: string, n: number): string {
+  if (n <= 0) return dateStr;
+  const d = new Date(dateStr + "T12:00:00");
+  let count = 0;
+  while (count < n) {
+    d.setDate(d.getDate() - 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+/** Compute due date from start + duration (weekdays). */
+function computeDueDate(start: string, duration: number): string {
+  if (duration <= 1) return start;
+  return addWeekdays(start, duration - 1);
 }
 
 export function EditPanel({ state }: Props) {
@@ -99,7 +134,6 @@ export function EditPanel({ state }: Props) {
 
   return (
     <div style={styles.panel}>
-      {/* Header */}
       <div style={styles.header}>
         <span style={styles.title}>⬤ ARNOLD SPRINT</span>
         <span style={styles.subtitle}>{state.projectName}</span>
@@ -107,7 +141,6 @@ export function EditPanel({ state }: Props) {
 
       {error && <div style={styles.error}>{error}</div>}
 
-      {/* Tracks */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {state.tracks.map((track) => {
           const runner = state.members.find((m) => m.id === track.mainRunnerId);
@@ -131,7 +164,6 @@ export function EditPanel({ state }: Props) {
                 </button>
               </summary>
 
-              {/* Timeline Start */}
               <div style={styles.timelineStartRow}>
                 <span style={styles.timelineLabel}>Timeline Start</span>
                 <TimelineStartInput
@@ -146,7 +178,6 @@ export function EditPanel({ state }: Props) {
                 />
               </div>
 
-              {/* Hopper Assignments */}
               <div style={styles.hopperSection}>
                 <span style={styles.hopperLabel}>Hopper 1</span>
                 <div style={styles.hopperRow}>
@@ -230,7 +261,6 @@ export function EditPanel({ state }: Props) {
           );
         })}
 
-        {/* Add Jurisdiction button */}
         <button style={styles.addJurisdictionBtn} onClick={addJurisdiction}>
           ＋ Add Jurisdiction
         </button>
@@ -278,7 +308,7 @@ function TimelineStartInput({
   );
 }
 
-// ── Phase row ─────────────────────────────────────────────────────────────────
+// ── Phase row — edit due date instead of start date ──────────────────────────
 
 interface PhaseRowProps {
   phase: AnimationState["tracks"][0]["phases"][0];
@@ -287,13 +317,17 @@ interface PhaseRowProps {
 }
 
 function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
-  const [start, setStart]       = useState(phase.start);
+  const currentDueDate = computeDueDate(phase.start, phase.duration);
+  const [dueDate, setDueDate] = useState(currentDueDate);
   const [duration, setDuration] = useState(phase.duration);
   const [status, setStatus]     = useState<Status>(phase.status as Status);
   const [roll, setRoll]         = useState(phase.roll);
 
+  // Compute what start would be from the entered due date and duration
+  const computedStart = subtractWeekdays(dueDate, Math.max(1, duration) - 1);
+
   const dirty =
-    start !== phase.start ||
+    computedStart !== phase.start ||
     duration !== phase.duration ||
     status !== phase.status ||
     roll !== phase.roll;
@@ -304,7 +338,6 @@ function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
 
   return (
     <div style={styles.phaseRow}>
-      {/* Phase label with roll toggle */}
       <div style={styles.phaseLabel}>
         <button
           style={{
@@ -324,14 +357,13 @@ function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
         </span>
       </div>
 
-      {/* Inputs */}
       <div style={styles.inputs}>
         <input
           style={styles.dateInput}
           type="text"
-          value={start}
-          placeholder="YYYY-MM-DD"
-          onChange={(e) => setStart(e.target.value)}
+          value={dueDate}
+          placeholder="Due YYYY-MM-DD"
+          onChange={(e) => setDueDate(e.target.value)}
         />
         <input
           style={styles.numInput}
@@ -355,12 +387,11 @@ function PhaseRow({ phase, isSaving, onSave }: PhaseRowProps) {
         </select>
       </div>
 
-      {/* Save */}
       {dirty && (
         <button
           style={{ ...styles.saveBtn, opacity: isSaving ? 0.5 : 1 }}
           disabled={isSaving}
-          onClick={() => onSave({ start, duration, status, roll })}
+          onClick={() => onSave({ start: computedStart, duration, status, roll })}
         >
           {isSaving ? "…" : "SAVE"}
         </button>
