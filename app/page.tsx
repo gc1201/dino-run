@@ -9,6 +9,7 @@ import { getMembers, getTracksWithPhases } from "@/lib/queries";
 import { buildAnimationState } from "@/lib/state";
 import { SprintRace } from "@/components/SprintRace";
 import { EditPanel } from "@/components/EditPanel";
+import { MobileLayout } from "@/components/MobileLayout";
 
 // Opt out of static generation — data changes on every phase edit
 export const dynamic = "force-dynamic";
@@ -22,13 +23,9 @@ export default async function Home() {
   const state = buildAnimationState(allMembers, tracksWithPhases);
 
   return (
-    <div className="layout-root">
-      <aside className="layout-sidebar">
-        <EditPanel state={state} />
-      </aside>
-      <main className="layout-main">
-        <SprintRace state={state} />
-      </main>
-    </div>
+    <MobileLayout
+      sidebar={<EditPanel state={state} />}
+      main={<SprintRace state={state} />}
+    />
   );
 }
