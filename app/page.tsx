@@ -22,34 +22,13 @@ export default async function Home() {
   const state = buildAnimationState(allMembers, tracksWithPhases);
 
   return (
-    <div style={styles.root}>
-      <aside style={styles.sidebar}>
+    <div className="layout-root">
+      <aside className="layout-sidebar">
         <EditPanel state={state} />
       </aside>
-      <main style={styles.main}>
+      <main className="layout-main">
         <SprintRace state={state} />
       </main>
     </div>
   );
 }
-
-const styles = {
-  root: {
-    display: "flex",
-    height: "100dvh",
-    overflow: "hidden",
-    background: "#111",
-  },
-  sidebar: {
-    width: 300,
-    flexShrink: 0,
-    borderRight: "1px solid #333",
-    overflowY: "auto" as const,
-    background: "#1a1a1a",
-  },
-  main: {
-    flex: 1,
-    overflow: "hidden",
-    position: "relative" as const,
-  },
-} as const;
