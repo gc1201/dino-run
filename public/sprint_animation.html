@@ -51,6 +51,18 @@
     .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--muted); }
     .legend-sym { font-size: 0.8rem; }
     .legend-div { width: 1px; height: 16px; background: var(--border); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .hdr { flex-direction: column; align-items: flex-start; padding: 10px 14px 10px 60px; gap: 4px; }
+      .hdr-left { flex-direction: column; align-items: flex-start; gap: 2px; }
+      .proj-name { border-left: none; padding-left: 0; }
+      .hi-score { font-size: 0.68rem; }
+      .app-title { font-size: 0.85rem; }
+      .main { padding: 16px 12px 60px; }
+      .track-label-col { width: 80px; padding-right: 8px; }
+      .juris-name { font-size: 0.72rem; }
+    }
   </style>
 </head>
 <body>
